@@ -1,0 +1,2197 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stores KPI &amp; Appraisal | Sri Narasu's Coffee Co.</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --coffee-900:#3B2415; --coffee-700:#6F4E37; --coffee-500:#9C6B45;
+  --coffee-300:#C8A27A; --cream-100:#FAF3E7; --cream-50:#FFFDF9;
+  --ok:#5A7D4A; --warn:#C08A2E; --danger:#B5493A;
+  --radius:12px; --shadow:0 4px 16px rgba(59,36,21,0.10);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{background:var(--cream-100); color:var(--coffee-900); min-height:100vh;}
+button{font-family:inherit; cursor:pointer; border:none;}
+input,select,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:8px; height:8px;}
+::-webkit-scrollbar-thumb{background:var(--coffee-300); border-radius:8px;}
+
+/* ---------- LOGIN ---------- */
+#loginScreen{
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(160deg,var(--coffee-900),var(--coffee-700) 60%,var(--coffee-500));
+  padding:20px;
+}
+.login-card{
+  background:var(--cream-50); border-radius:16px; padding:40px 32px; width:100%; max-width:380px;
+  box-shadow:0 20px 50px rgba(0,0,0,0.35); text-align:center;
+}
+.login-card .brand-mark{
+  width:56px; height:56px; border-radius:50%; background:var(--coffee-700); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:26px; margin:0 auto 14px;
+}
+.login-card h1{font-size:19px; color:var(--coffee-900); margin-bottom:2px;}
+.login-card p.sub{font-size:12.5px; color:var(--coffee-500); margin-bottom:26px;}
+.field{text-align:left; margin-bottom:16px;}
+.field label{display:block; font-size:12px; font-weight:600; color:var(--coffee-700); margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em;}
+.field input{width:100%; padding:11px 13px; border:1.5px solid var(--coffee-300); border-radius:8px; font-size:14.5px; background:#fff; color:var(--coffee-900);}
+.field input:focus{outline:none; border-color:var(--coffee-700);}
+.btn-primary{
+  width:100%; background:var(--coffee-700); color:#fff; padding:12px; border-radius:8px;
+  font-size:14.5px; font-weight:600; margin-top:6px; transition:background .15s;
+}
+.btn-primary:hover{background:var(--coffee-900);}
+.btn-primary:disabled{opacity:.6; cursor:default;}
+#loginError{color:var(--danger); font-size:12.5px; margin-top:12px; min-height:16px;}
+#apiUrlNote{font-size:11px; color:#B0906E; margin-top:18px; line-height:1.5;}
+
+/* ---------- APP SHELL ---------- */
+#app{display:none; min-height:100vh; flex-direction:column;}
+header.topbar{
+  background:var(--coffee-900); color:#fff; padding:12px 18px; display:flex; align-items:center;
+  justify-content:space-between; position:sticky; top:0; z-index:20; box-shadow:var(--shadow);
+}
+.topbar .brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:15px;}
+.topbar .brand .dot{width:10px; height:10px; border-radius:50%; background:var(--coffee-300);}
+.topbar .who{font-size:12px; color:var(--coffee-300); display:flex; align-items:center; gap:10px;}
+.topbar .who button{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.3); padding:6px 12px; border-radius:6px; font-size:12px;}
+.lang-toggle{background:transparent; border:1px solid rgba(255,255,255,.35) !important; color:#fff; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600;}
+.lang-toggle:hover{background:rgba(255,255,255,.12);}
+.login-card{position:relative;}
+.login-card .lang-toggle{position:absolute; top:14px; right:14px; color:var(--coffee-700); border:1px solid var(--coffee-300) !important; padding:5px 10px; font-size:11px;}
+.login-card .lang-toggle:hover{background:var(--cream-100);}
+html[data-lang="ta"] body{font-family:'Noto Sans Tamil','Segoe UI',system-ui,-apple-system,sans-serif;}
+
+.layout{display:flex; flex:1; min-height:0;}
+nav.sidebar{
+  width:210px; background:var(--coffee-700); color:var(--cream-100); padding:14px 0; flex-shrink:0;
+}
+nav.sidebar button{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:transparent;
+  color:var(--cream-100); padding:11px 20px; font-size:13.5px; border-left:3px solid transparent;
+}
+nav.sidebar button.active{background:rgba(255,255,255,.12); border-left-color:var(--coffee-300); font-weight:600;}
+nav.sidebar button:hover{background:rgba(255,255,255,.08);}
+
+main.content{flex:1; padding:22px; overflow-x:hidden; min-width:0;}
+.view{display:none;}
+.view.active{display:block; animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+h2.view-title{font-size:20px; color:var(--coffee-900); margin-bottom:4px;}
+p.view-sub{font-size:13px; color:var(--coffee-500); margin-bottom:20px;}
+
+.card{background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:18px; margin-bottom:18px;}
+.grid{display:grid; gap:16px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:900px){.grid-4{grid-template-columns:repeat(2,1fr);} .grid-2{grid-template-columns:1fr;}}
+
+.stat-card{background:linear-gradient(135deg,var(--coffee-700),var(--coffee-900)); color:#fff; border-radius:var(--radius); padding:18px; box-shadow:var(--shadow);}
+.stat-card .label{font-size:11.5px; opacity:.8; text-transform:uppercase; letter-spacing:.05em;}
+.stat-card .value{font-size:26px; font-weight:700; margin-top:6px;}
+.stat-card.alt{background:linear-gradient(135deg,var(--coffee-300),var(--coffee-500)); color:var(--coffee-900);}
+
+/* Team Responsibility banner (Dashboard) - Plan / Check / Do / Improve / Achieve */
+.team-strip-card{background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px; margin-bottom:18px;}
+.team-strip-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;}
+.team-strip-head h3{font-size:15px; color:var(--coffee-900); display:flex; align-items:center; gap:6px;}
+.team-strip-head .badge100{font-size:11px; font-weight:700; color:var(--coffee-700); background:var(--cream-100); padding:4px 10px; border-radius:20px; border:1px solid var(--coffee-300); white-space:nowrap;}
+.team-strip{display:flex; flex-wrap:wrap; gap:10px;}
+.team-step{flex:1; min-width:150px; border-radius:10px; padding:12px 14px; color:#fff; display:flex; align-items:center; gap:10px;}
+.team-step .num{width:24px; height:24px; border-radius:50%; background:rgba(255,255,255,.28); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0;}
+.team-step .icon{font-size:18px; flex-shrink:0;}
+.team-step .label{font-weight:700; font-size:13.5px;}
+.team-step.plan{background:linear-gradient(135deg,#2f6fed,#1d4fb0);}
+.team-step.check{background:linear-gradient(135deg,#5a9e3f,#3f7a2a);}
+.team-step.do{background:linear-gradient(135deg,#e2942e,#b5721b);}
+.team-step.improve{background:linear-gradient(135deg,#8b5fc9,#6a3fa0);}
+.team-step.achieve{background:linear-gradient(135deg,#d64b3a,#a5312a);}
+.team-strip-tag{margin-top:12px; text-align:center; font-size:10.5px; letter-spacing:.08em; color:var(--coffee-500); text-transform:uppercase; font-weight:600;}
+@media(max-width:900px){.team-step{min-width:100%;}}
+
+table{width:100%; border-collapse:collapse; font-size:13px;}
+th,td{padding:9px 10px; text-align:left; border-bottom:1px solid #EEE0CC;}
+th{background:var(--cream-100); color:var(--coffee-700); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.03em;}
+tr:hover td{background:#FFFBF3;}
+.table-wrap{overflow-x:auto;}
+
+.badge{display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600;}
+.badge.Draft{background:#EEE; color:#777;}
+.badge.Submitted{background:#FCEBC9; color:var(--warn);}
+.badge.Approved{background:#E1EBD9; color:var(--ok);}
+.badge.Rejected{background:#F5DAD5; color:var(--danger);}
+.badge.warn{background:#FCEBC9; color:var(--warn);}
+
+.btn{padding:8px 14px; border-radius:7px; font-size:12.5px; font-weight:600;}
+.btn-brown{background:var(--coffee-700); color:#fff;}
+.btn-brown:hover{background:var(--coffee-900);}
+.btn-outline{background:#fff; border:1.4px solid var(--coffee-700); color:var(--coffee-700);}
+.btn-sm{padding:5px 10px; font-size:11.5px;}
+.btn-ok{background:var(--ok); color:#fff;}
+.btn-danger{background:var(--danger); color:#fff;}
+
+.form-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:12px;}
+.form-row label{display:block; font-size:11.5px; font-weight:600; color:var(--coffee-700); margin-bottom:4px; text-transform:uppercase;}
+.form-row input,.form-row select,.form-row textarea{width:100%; padding:9px 10px; border:1.4px solid var(--coffee-300); border-radius:7px; font-size:13.5px;}
+
+.line-item{border:1.4px dashed var(--coffee-300); border-radius:10px; padding:14px; margin-bottom:12px; position:relative; background:var(--cream-100);}
+.line-item .remove{position:absolute; top:8px; right:10px; background:transparent; color:var(--danger); font-size:16px; font-weight:700;}
+
+.wf-row{border-bottom:1px solid #EEE0CC; padding:2px 0;}
+.wf-row:last-child{border-bottom:none;}
+.wf-row label.wf-label{display:flex; align-items:center; gap:9px; padding:9px 2px; font-size:13.5px; cursor:pointer;}
+.wf-row input.wf-check{width:16px; height:16px; accent-color:var(--coffee-700); cursor:pointer;}
+.wf-count-box{background:var(--cream-100); border-radius:8px; padding:10px 12px; margin:0 0 10px 25px;}
+.draft-row{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid #EEE0CC;}
+.draft-row:last-child{border-bottom:none;}
+
+.toast{position:fixed; bottom:20px; right:20px; background:var(--coffee-900); color:#fff; padding:12px 18px; border-radius:8px; font-size:13px; box-shadow:var(--shadow); z-index:100; opacity:0; transform:translateY(10px); transition:all .25s;}
+.toast.show{opacity:1; transform:translateY(0);}
+
+.empty{text-align:center; color:var(--coffee-500); font-size:13px; padding:30px 0;}
+
+/* ---------- HR APPRAISAL ---------- */
+.subtab-bar{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;}
+.subtab-bar button{padding:8px 14px; border-radius:20px; font-size:12.5px; font-weight:600; background:#fff; border:1.4px solid var(--coffee-300); color:var(--coffee-700);}
+.subtab-bar button.active{background:var(--coffee-700); color:#fff; border-color:var(--coffee-700);}
+.subview{display:none;}
+.subview.active{display:block; animation:fadeIn .2s ease;}
+.badge.Outstanding{background:#E1EBD9; color:var(--ok);}
+.badge.Excellent{background:#E1EBD9; color:var(--ok);}
+.badge.Good{background:#FCEBC9; color:var(--warn);}
+.badge.Satisfactory{background:#FCEBC9; color:var(--warn);}
+.badge.NeedsImprovement{background:#F5DAD5; color:var(--danger);}
+.badge.Poor{background:#F5DAD5; color:var(--danger);}
+.badge.Issued{background:#FCEBC9; color:var(--warn);}
+.badge.Replied{background:#DCE7F5; color:#2f6fed;}
+.badge.Reviewed{background:#E9E0F5; color:#6a3fa0;}
+.badge.Closed{background:#E1EBD9; color:var(--ok);}
+
+.memo-timeline{list-style:none; margin-top:12px;}
+.memo-timeline li{padding:4px 0 12px 22px; border-left:2px solid var(--coffee-300); position:relative; font-size:12.5px; color:var(--coffee-900);}
+.memo-timeline li:before{content:''; position:absolute; left:-6px; top:4px; width:10px; height:10px; border-radius:50%; background:var(--coffee-500);}
+.memo-timeline li:last-child{border-left-color:transparent; padding-bottom:0;}
+.memo-timeline .tl-date{color:var(--coffee-500); font-size:11px; display:block; margin-top:2px;}
+.memo-detail-card{border:1.4px solid var(--coffee-300); background:var(--cream-100);}
+.memo-detail-card .close-x{float:right; background:transparent; color:var(--coffee-500); font-size:16px; font-weight:700;}
+.attach-link{font-size:12.5px; color:#2f6fed; text-decoration:underline; word-break:break-all;}
+.mini-list{list-style:none;}
+.mini-list li{padding:8px 0; border-bottom:1px solid #EEE0CC; font-size:13px; display:flex; justify-content:space-between; gap:10px;}
+.mini-list li:last-child{border-bottom:none;}
+.mini-list .tag{font-size:11px; color:var(--coffee-500);}
+.hr-summary-card h4{font-size:12.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--coffee-700); margin-bottom:10px;}
+.weak-tag{display:inline-block; background:#FCEBC9; color:var(--warn); font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:10px; margin:2px 3px 0 0;}
+
+.progress-track{background:#EEE0CC; border-radius:20px; height:9px; width:130px; overflow:hidden; display:inline-block; vertical-align:middle; margin-right:8px;}
+.progress-fill{height:100%; border-radius:20px; background:var(--ok);}
+.progress-fill.warn{background:var(--warn);}
+.progress-fill.danger{background:var(--danger);}
+.li-target-info{font-size:11.5px; color:var(--coffee-500); margin-top:6px; line-height:1.6;}
+
+.bottom-nav{display:none;}
+@media(max-width:760px){
+  nav.sidebar{display:none;}
+  .bottom-nav{
+    display:flex; position:sticky; bottom:0; background:var(--coffee-900); z-index:20;
+    overflow-x:auto; padding:6px 4px;
+  }
+  .bottom-nav button{flex:0 0 auto; background:transparent; color:var(--cream-100); font-size:11px; padding:8px 12px; border-radius:8px; white-space:nowrap;}
+  .bottom-nav button.active{background:rgba(255,255,255,.15); font-weight:700;}
+  main.content{padding:14px;}
+  .grid-4{grid-template-columns:1fr 1fr;}
+}
+canvas{max-height:260px;}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <button class="lang-toggle" id="langToggleLogin" onclick="toggleLang()">தமிழ் / EN</button>
+    <div class="brand-mark">☕</div>
+    <h1 data-i18n="appTitle">Stores KPI &amp; Appraisal</h1>
+    <p class="sub" data-i18n="companyLine">Sri Narasu's Coffee Company Pvt Ltd &mdash; Stores Department</p>
+    <div class="field">
+      <label data-i18n="userId">User ID</label>
+      <input id="loginUserId" type="text" autocomplete="username" placeholder="e.g. sakthivel">
+    </div>
+    <div class="field">
+      <label data-i18n="password">Password</label>
+      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <button class="btn-primary" id="loginBtn" onclick="doLogin()" data-i18n="logIn">Log In</button>
+    <div id="loginError"></div>
+    <div id="apiUrlNote"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><span class="dot"></span> <span data-i18n="appTitle">Stores KPI &amp; Appraisal</span></div>
+    <div class="who">
+      <span id="whoLabel"></span>
+      <button class="lang-toggle" onclick="toggleLang()">தமிழ் / EN</button>
+      <button onclick="logout()" data-i18n="logOut">Log Out</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="sidebar" id="sidebar"></nav>
+
+    <main class="content">
+
+      <!-- DASHBOARD -->
+      <section class="view" id="view-dashboard">
+        <h2 class="view-title" data-i18n="dashTitle">Dashboard</h2>
+        <p class="view-sub" data-i18n="dashSub">Current month performance snapshot</p>
+
+        <div class="team-strip-card">
+          <div class="team-strip-head">
+            <h3 data-i18n="teamResp">🏆 Team Responsibility</h3>
+            <span class="badge100" data-i18n="badge100">100 Years of Sri Narasu's Coffee</span>
+          </div>
+          <div class="team-strip">
+            <div class="team-step plan"><div class="num">1</div><div class="icon">📋</div><div class="label" data-i18n="wePlan">We Plan</div></div>
+            <div class="team-step check"><div class="num">2</div><div class="icon">🔍</div><div class="label" data-i18n="weCheck">We Check</div></div>
+            <div class="team-step do"><div class="num">3</div><div class="icon">⚙️</div><div class="label" data-i18n="weDo">We Do</div></div>
+            <div class="team-step improve"><div class="num">4</div><div class="icon">📈</div><div class="label" data-i18n="weImprove">We Improve</div></div>
+            <div class="team-step achieve"><div class="num">5</div><div class="icon">🏆</div><div class="label" data-i18n="weAchieve">We Achieve</div></div>
+          </div>
+          <div class="team-strip-tag" data-i18n="teamTag">Together &middot; Focused &middot; Committed &middot; Successful</div>
+        </div>
+
+        <div class="grid grid-4" id="dashStats"></div>
+        <div class="grid grid-2">
+          <div class="card"><h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="kpiByStaff">KPI Score by Staff</h3><canvas id="chartStaff"></canvas></div>
+          <div class="card"><h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="kpiByActivity">KPI Score by Activity</h3><canvas id="chartActivity"></canvas></div>
+        </div>
+      </section>
+
+      <!-- WORKING REGISTER -->
+      <section class="view" id="view-register">
+        <h2 class="view-title" data-i18n="regTitle">Working Register</h2>
+        <p class="view-sub" data-i18n="regSub">Pick the Date and Activity once, then tick every workflow you performed.</p>
+        <div class="card">
+          <div class="form-row">
+            <div><label data-i18n="date">Date</label><input type="date" id="regDate"></div>
+            <div><label data-i18n="activity">Activity</label><select id="regActivity" onchange="renderWorkflowChecklist()"><option value="" data-i18n="select">Select</option></select></div>
+          </div>
+
+          <div id="wfChecklistWrap" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;">
+              <label style="font-size:11.5px;font-weight:600;color:var(--coffee-700);text-transform:uppercase;letter-spacing:.04em;" data-i18n="selectWorkflows">Select Workflows</label>
+              <div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="toggleAllWorkflows(true)" data-i18n="selectAll">Select All</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="toggleAllWorkflows(false)" data-i18n="clearAll">Clear All</button>
+              </div>
+            </div>
+            <div id="wfChecklist"></div>
+            <div class="form-row" style="margin-top:12px;">
+              <div><label data-i18n="remarksOpt">Remarks (optional)</label><input type="text" id="regRemarks" placeholder="Applies to this entry"></div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;">
+            <button class="btn btn-outline" onclick="saveWorkingEntries('Draft')" data-i18n="saveDraft">🟡 Save Draft</button>
+            <button class="btn btn-brown" onclick="saveWorkingEntries('Submitted')" data-i18n="submitBtn">🟢 Submit</button>
+          </div>
+        </div>
+
+        <div class="card" id="myDraftsCard">
+          <h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="myDrafts">My Draft Entries</h3>
+          <div id="myDraftsList"></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="recentEntries">Recent Entries</h3>
+          <div class="table-wrap"><table id="registerTable"><thead><tr>
+            <th data-i18n="date">Date</th><th data-i18n="staff">Staff</th><th data-i18n="activity">Activity</th><th data-i18n="workflow">Workflow</th><th data-i18n="perEntryTarget">Per-Entry Target</th><th data-i18n="actual">Actual</th><th data-i18n="kpiScore">KPI Score</th><th data-i18n="status">Status</th>
+          </tr></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- MONTHLY TARGETS (Manager only) -->
+      <section class="view" id="view-targets">
+        <h2 class="view-title" data-i18n="targetsTitle">Monthly Target Management</h2>
+        <p class="view-sub" data-i18n="targetsSub">Set the monthly target for each Activity → Workflow. Manager only.</p>
+        <div class="card">
+          <div class="form-row">
+            <div><label data-i18n="month">Month</label><input type="month" id="mtMonth"></div>
+            <div><label data-i18n="activity">Activity</label><select id="mtActivity" onchange="mtPopulateWorkflows()"><option value="" data-i18n="select">Select</option></select></div>
+            <div><label data-i18n="workflow">Workflow</label><select id="mtWorkflow" onchange="mtShowDefaultTargetHint()"><option value="" data-i18n="selectActivityFirst">Select Activity first</option></select></div>
+            <div><label data-i18n="monthlyTarget">Monthly Target</label><input type="number" id="mtTarget" min="0" step="1" value="0"></div>
+          </div>
+          <p class="li-target-info" id="mtDefaultHint"></p>
+          <button class="btn btn-brown" onclick="saveMonthlyTarget()" data-i18n="saveTarget">Save Target</button>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="targetsForMonth">Targets for Selected Month</h3>
+          <div class="table-wrap"><table id="targetsTable"><thead><tr>
+            <th data-i18n="activity">Activity</th><th data-i18n="workflow">Workflow</th><th data-i18n="kpi">KPI</th><th data-i18n="monthlyTarget">Monthly Target</th><th></th>
+          </tr></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- TARGET STATUS (Manager + Staff, read-only) -->
+      <section class="view" id="view-targetStatus">
+        <h2 class="view-title" data-i18n="targetStatusTitle">Target Status</h2>
+        <p class="view-sub" data-i18n="targetStatusSub">Progress of each workflow against its monthly target (Approved entries only)</p>
+        <div class="card">
+          <div class="form-row">
+            <div><label data-i18n="month">Month</label><input type="month" id="tsMonth" onchange="loadTargetStatus()"></div>
+          </div>
+        </div>
+        <div class="grid grid-4" id="targetDashStats"></div>
+        <div class="card">
+          <div class="table-wrap"><table id="targetStatusTable"><thead><tr>
+            <th data-i18n="workflow">Workflow</th><th data-i18n="target">Target</th><th data-i18n="source">Source</th><th data-i18n="approvedQty">Approved Qty</th><th data-i18n="remaining">Remaining</th><th data-i18n="progress">Progress</th><th></th>
+          </tr></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- APPROVALS (Manager only) -->
+      <section class="view" id="view-approvals">
+        <h2 class="view-title" data-i18n="approvalsTitle">Approvals</h2>
+        <p class="view-sub" data-i18n="approvalsSub">Review Draft and Submitted working register entries. Edit counts if needed before deciding.</p>
+        <div style="margin-bottom:14px;">
+          <button class="btn btn-brown btn-sm" id="apTabSubmitted" onclick="setApprovalsTab('Submitted')" data-i18n="submittedEntries">Submitted Entries</button>
+          <button class="btn btn-outline btn-sm" id="apTabDraft" onclick="setApprovalsTab('Draft')" data-i18n="draftEntries">Draft Entries</button>
+        </div>
+        <div id="approvalsList"></div>
+      </section>
+
+      <!-- ATTENDANCE -->
+      <section class="view" id="view-attendance">
+        <h2 class="view-title" data-i18n="attendanceTitle">Attendance</h2>
+        <p class="view-sub" data-i18n="attendanceSub">Mark daily attendance</p>
+        <div class="card">
+          <div class="form-row">
+            <div><label data-i18n="date">Date</label><input type="date" id="attDate"></div>
+            <div><label data-i18n="status">Status</label>
+              <select id="attStatus"><option data-i18n="present">Present</option><option data-i18n="absent">Absent</option><option data-i18n="halfDay">Half Day</option><option data-i18n="permission">Permission</option></select>
+            </div>
+            <div><label data-i18n="permHours">Permission Hours</label><input type="number" id="attPermHrs" min="0" step="0.5" value="0"></div>
+          </div>
+          <div class="form-row"><div style="grid-column:1/-1"><label data-i18n="remarks">Remarks</label><input type="text" id="attRemarks"></div></div>
+          <button class="btn btn-brown" onclick="markAttendance()" data-i18n="saveAttendance">Save Attendance</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table id="attendanceTable"><thead><tr><th data-i18n="date">Date</th><th data-i18n="staff">Staff</th><th data-i18n="status">Status</th><th data-i18n="permHrs">Permission Hrs</th><th data-i18n="remarks">Remarks</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- LEAVE -->
+      <section class="view" id="view-leave">
+        <h2 class="view-title" data-i18n="leaveTitle">Leave</h2>
+        <p class="view-sub" data-i18n="leaveSub">Apply for leave and track status</p>
+        <div class="card">
+          <div class="form-row">
+            <div><label data-i18n="from">From</label><input type="date" id="lvFrom"></div>
+            <div><label data-i18n="to">To</label><input type="date" id="lvTo"></div>
+            <div><label data-i18n="type">Type</label><select id="lvType"><option data-i18n="casual">Casual</option><option data-i18n="sick">Sick</option><option data-i18n="earned">Earned</option><option data-i18n="unpaid">Unpaid</option></select></div>
+          </div>
+          <div class="form-row"><div style="grid-column:1/-1"><label data-i18n="reason">Reason</label><input type="text" id="lvReason"></div></div>
+          <button class="btn btn-brown" onclick="applyLeave()" data-i18n="applyLeave">Apply Leave</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table id="leaveTable"><thead><tr><th data-i18n="staff">Staff</th><th data-i18n="from">From</th><th data-i18n="to">To</th><th data-i18n="type">Type</th><th data-i18n="reason">Reason</th><th data-i18n="status">Status</th><th></th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- MY MEMOS (Staff only) -->
+      <section class="view" id="view-myMemos">
+        <h2 class="view-title" data-i18n="myMemosTitle">My Memos</h2>
+        <p class="view-sub" data-i18n="myMemosSub">Memos issued to you. Open one to read the details and add your reply.</p>
+        <div class="card">
+          <div class="table-wrap"><table id="myMemosTable"><thead><tr>
+            <th data-i18n="memoNo">Memo No</th><th data-i18n="date">Date</th><th data-i18n="category">Category</th><th data-i18n="actionType">Action Type</th><th data-i18n="status">Status</th><th></th>
+          </tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="card memo-detail-card" id="myMemoDetailCard" style="display:none;"></div>
+      </section>
+
+      <!-- STAFF APPRAISAL -->
+      <section class="view" id="view-appraisal">
+        <h2 class="view-title" data-i18n="staffApprTitle">Staff Appraisal</h2>
+        <p class="view-sub" data-i18n="staffApprSub">KPI-based appraisal for a custom date range</p>
+        <div class="card">
+          <div class="form-row">
+            <div><label data-i18n="from">From</label><input type="date" id="apprFrom"></div>
+            <div><label data-i18n="to">To</label><input type="date" id="apprTo"></div>
+            <div style="align-self:end;"><button class="btn btn-brown" onclick="loadAppraisal()" data-i18n="runAppraisal">Run Appraisal</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h3 style="font-size:14px;color:var(--coffee-700)" data-i18n="results">Results</h3>
+            <button class="btn btn-outline btn-sm" onclick="exportAppraisal()" data-i18n="exportXlsx">Export .xlsx</button>
+          </div>
+          <div class="table-wrap"><table id="appraisalTable"><thead><tr>
+            <th data-i18n="staff">Staff</th><th data-i18n="designation">Designation</th><th data-i18n="section">Section</th><th data-i18n="entries">Entries</th><th data-i18n="kpiScore">KPI Score</th>
+          </tr></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- HR APPRAISAL (Manager only) -->
+      <section class="view" id="view-hrAppraisal">
+        <h2 class="view-title" data-i18n="hrApprTitle">HR Appraisal</h2>
+        <p class="view-sub" data-i18n="hrApprSub">8-criteria KPI appraisal (100 marks) with Special Recognition bonus, Memo/Disciplinary deductions, Final Score and Rating.</p>
+
+        <div class="card">
+          <div class="form-row">
+            <div><label data-i18n="periodLabel">Period Label</label><input type="text" id="hrPeriod" placeholder="e.g. Jul-2026"></div>
+            <div><label data-i18n="from">From</label><input type="date" id="hrFrom"></div>
+            <div><label data-i18n="to">To</label><input type="date" id="hrTo"></div>
+            <div style="align-self:end;"><button class="btn btn-brown" onclick="runFullAppraisal()" data-i18n="runAppraisal">Run Appraisal</button></div>
+            <div style="align-self:end;"><button class="btn btn-outline" onclick="saveHrSnapshot()" data-i18n="saveSnapshot">💾 Save Snapshot</button></div>
+          </div>
+          <p class="li-target-info" data-i18n="periodLabelInfo">Period Label tags Recognition, Memo and Manual Score records for this cycle (e.g. "Jul-2026"). Saving a Snapshot lets the Department Dashboard build a Monthly/Yearly trend.</p>
+        </div>
+
+        <div class="subtab-bar">
+          <button class="subtab-btn active" data-subtab="hrScorecard" onclick="setHrTab('hrScorecard')" data-i18n="tabScorecard">📊 Scorecard</button>
+          <button class="subtab-btn" data-subtab="hrRecogMemo" onclick="setHrTab('hrRecogMemo')" data-i18n="tabRecognition">🏅 Recognition (Bonus)</button>
+          <button class="subtab-btn" data-subtab="hrMemoMgmt" onclick="setHrTab('hrMemoMgmt')" data-i18n="tabMemoMgmt">📄 Memo Management</button>
+          <button class="subtab-btn" data-subtab="hrManual" onclick="setHrTab('hrManual')" data-i18n="tabManualScores">✍️ Manual Scores</button>
+          <button class="subtab-btn" data-subtab="hrSummary" onclick="setHrTab('hrSummary')" data-i18n="tabHrSummary">📋 HR Summary</button>
+          <button class="subtab-btn" data-subtab="hrDashboard" onclick="setHrTab('hrDashboard')" data-i18n="tabDeptDashboard">📈 Department Dashboard</button>
+        </div>
+
+        <!-- SCORECARD -->
+        <div class="subview active" id="subview-hrScorecard">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <h3 style="font-size:14px;color:var(--coffee-700)" data-i18n="scorecardHeader">Staff-Wise KPI Scorecard</h3>
+              <button class="btn btn-outline btn-sm" onclick="exportFullAppraisal()" data-i18n="exportXlsx">Export .xlsx</button>
+            </div>
+            <div class="table-wrap"><table id="hrScorecardTable"><thead><tr>
+              <th data-i18n="employee">Employee</th><th data-i18n="attCol">Att.(10)</th><th data-i18n="prodCol">Prod.(30)</th><th data-i18n="qualCol">Qual.(10)</th><th data-i18n="teamCol">Team(10)</th><th data-i18n="discCol">Disc.(10)</th>
+              <th data-i18n="initCol">Init.(10)</th><th data-i18n="trainCol">Train(10)</th><th data-i18n="servCol">Serv.(10)</th><th data-i18n="kpi100Col">KPI(100)</th><th data-i18n="bonus">Bonus</th><th data-i18n="memo">Memo</th><th data-i18n="final">Final</th><th data-i18n="rating">Rating</th>
+            </tr></thead><tbody></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- RECOGNITION (BONUS) -->
+        <div class="subview" id="subview-hrRecogMemo">
+          <div class="card">
+            <h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="addRecognition">Add Special Recognition (Bonus)</h3>
+            <div class="form-row">
+              <div><label data-i18n="staff">Staff</label><select id="rcStaff"></select></div>
+              <div><label data-i18n="type">Type</label><select id="rcType" onchange="rcTypeChanged()"></select></div>
+              <div id="rcBonusWrap" style="display:none;"><label data-i18n="bonusMarks">Bonus Marks (2–5)</label><input type="number" id="rcBonusMarks" min="2" max="5" step="1" value="3"></div>
+            </div>
+            <div class="form-row"><div style="grid-column:1/-1"><label data-i18n="reason">Reason</label><input type="text" id="rcReason" placeholder="Required"></div></div>
+            <button class="btn btn-brown" onclick="addRecognitionEntry()" data-i18n="addRecognitionBtn">Add Recognition</button>
+          </div>
+          <div class="card">
+            <h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="recogThisPeriod">Recognitions — This Period</h3>
+            <div class="table-wrap"><table id="recogTable"><thead><tr><th data-i18n="staff">Staff</th><th data-i18n="type">Type</th><th data-i18n="bonus">Bonus</th><th data-i18n="reason">Reason</th><th></th></tr></thead><tbody></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- MEMO MANAGEMENT -->
+        <div class="subview" id="subview-hrMemoMgmt">
+          <div class="card">
+            <h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="issueNewMemo">Issue New Memo</h3>
+            <div class="form-row">
+              <div><label data-i18n="staff">Staff</label><select id="dmStaff"></select></div>
+              <div><label data-i18n="memoDate">Memo Date</label><input type="date" id="dmMemoDate"></div>
+              <div><label data-i18n="actionType">Action Type</label><select id="dmType"></select></div>
+              <div><label data-i18n="category">Category</label><select id="dmCategory"></select></div>
+            </div>
+            <div class="form-row"><div style="grid-column:1/-1"><label data-i18n="reasonShort">Reason (short)</label><input type="text" id="dmReason" placeholder="Required"></div></div>
+            <div class="form-row"><div style="grid-column:1/-1"><label data-i18n="descDetailed">Description (detailed)</label><textarea id="dmDescription" rows="3" placeholder="Optional — full account of the incident"></textarea></div></div>
+            <div class="form-row"><div style="grid-column:1/-1"><label data-i18n="attachLink">Attachment Link (optional)</label><input type="text" id="dmAttachment" placeholder="Paste a Google Drive / document link"></div></div>
+            <button class="btn btn-danger" onclick="issueMemoEntry()" data-i18n="issueMemoBtn">Issue Memo</button>
+          </div>
+          <div class="card">
+            <h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="memosThisPeriod">Memos — This Period</h3>
+            <div class="table-wrap"><table id="memoMgmtTable"><thead><tr>
+              <th data-i18n="memoNo">Memo No</th><th data-i18n="staff">Staff</th><th data-i18n="category">Category</th><th data-i18n="actionType">Action Type</th><th data-i18n="deduction">Deduction</th><th data-i18n="status">Status</th><th></th>
+            </tr></thead><tbody></tbody></table></div>
+          </div>
+          <div class="card memo-detail-card" id="memoDetailCard" style="display:none;"></div>
+        </div>
+
+        <!-- MANUAL SCORES -->
+        <div class="subview" id="subview-hrManual">
+          <div class="card">
+            <h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="enterManualCriteria">Enter Manual Criteria (0–10 each)</h3>
+            <div class="form-row">
+              <div><label data-i18n="staff">Staff</label><select id="msStaff" onchange="msLoadExisting()"></select></div>
+              <div><label data-i18n="qualityAccuracy">Quality &amp; Accuracy</label><input type="number" id="msQuality" min="0" max="10" step="0.5" value="0"></div>
+              <div><label data-i18n="teamworkComm">Teamwork &amp; Communication</label><input type="number" id="msTeamwork" min="0" max="10" step="0.5" value="0"></div>
+              <div><label data-i18n="disciplineCompliance">Discipline &amp; Compliance</label><input type="number" id="msDiscipline" min="0" max="10" step="0.5" value="0"></div>
+              <div><label data-i18n="initiativeProblem">Initiative &amp; Problem Solving</label><input type="number" id="msInitiative" min="0" max="10" step="0.5" value="0"></div>
+              <div><label data-i18n="trainingSkill">Training &amp; Skill Dev.</label><input type="number" id="msTraining" min="0" max="10" step="0.5" value="0"></div>
+              <div><label data-i18n="serviceBehaviour">Service &amp; Behaviour</label><input type="number" id="msService" min="0" max="10" step="0.5" value="0"></div>
+            </div>
+            <div class="form-row"><div style="grid-column:1/-1"><label data-i18n="comments">Comments</label><input type="text" id="msComments"></div></div>
+            <button class="btn btn-brown" onclick="submitManualScoreEntry()" data-i18n="saveManualScores">Save Manual Scores</button>
+          </div>
+          <div class="card">
+            <h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="manualScoresThisPeriod">Manual Scores — This Period</h3>
+            <div class="table-wrap"><table id="manualScoresTable"><thead><tr>
+              <th data-i18n="staff">Staff</th><th data-i18n="qualCol2">Qual.</th><th data-i18n="teamCol2">Team</th><th data-i18n="discCol2">Disc.</th><th data-i18n="initCol2">Init.</th><th data-i18n="trainCol2">Train</th><th data-i18n="servCol2">Serv.</th><th data-i18n="comments">Comments</th>
+            </tr></thead><tbody></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- HR SUMMARY -->
+        <div class="subview" id="subview-hrSummary">
+          <div class="grid grid-2">
+            <div class="card hr-summary-card"><h4 data-i18n="topPerformers">🏆 Top Performers (≥90)</h4><ul class="mini-list" id="sumTop"></ul></div>
+            <div class="card hr-summary-card"><h4 data-i18n="needingImprovement">⚠️ Needing Improvement (&lt;70)</h4><ul class="mini-list" id="sumImprove"></ul></div>
+            <div class="card hr-summary-card"><h4 data-i18n="eligiblePromotion">⬆️ Eligible for Promotion (≥85)</h4><ul class="mini-list" id="sumPromo"></ul></div>
+            <div class="card hr-summary-card"><h4 data-i18n="recommendedIncrement">💰 Recommended for Increment (≥80)</h4><ul class="mini-list" id="sumIncrement"></ul></div>
+            <div class="card hr-summary-card"><h4 data-i18n="recommendedTraining">🎓 Recommended for Training</h4><ul class="mini-list" id="sumTraining"></ul></div>
+            <div class="card hr-summary-card"><h4 data-i18n="disciplinaryConcerns">📄 Disciplinary Concerns</h4><ul class="mini-list" id="sumDisciplinary"></ul></div>
+          </div>
+        </div>
+
+        <!-- DEPARTMENT DASHBOARD -->
+        <div class="subview" id="subview-hrDashboard">
+          <div class="grid grid-4" id="hrDashStats"></div>
+          <div class="card">
+            <h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="staffRanking">Staff Ranking</h3>
+            <div class="table-wrap"><table id="hrRankTable"><thead><tr><th data-i18n="rank">Rank</th><th data-i18n="staff">Staff</th><th data-i18n="department">Department</th><th data-i18n="finalScore">Final Score</th><th data-i18n="rating">Rating</th></tr></thead><tbody></tbody></table></div>
+          </div>
+          <div class="grid grid-2">
+            <div class="card"><h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="bonusMemoImpact">Bonus / Memo Impact</h3><canvas id="chartBonusMemo"></canvas></div>
+            <div class="card"><h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="monthlyTrendChart">Monthly Trend (from saved snapshots)</h3><canvas id="chartTrend"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section class="view" id="view-reports">
+        <h2 class="view-title" data-i18n="reportsTitle">Reports</h2>
+        <p class="view-sub" data-i18n="reportsSub">Staff-wise, Activity-wise, Workflow-wise and Section-wise reports for a custom date range</p>
+        <div class="card">
+          <div class="form-row">
+            <div><label data-i18n="from">From</label><input type="date" id="repFrom"></div>
+            <div><label data-i18n="to">To</label><input type="date" id="repTo"></div>
+            <div><label data-i18n="groupBy">Group By</label>
+              <select id="repGroupBy"><option value="Staff Name" data-i18n="staff">Staff</option><option value="Activity Name" data-i18n="activity">Activity</option><option value="Workflow Name" data-i18n="workflow">Workflow</option></select>
+            </div>
+            <div style="align-self:end;"><button class="btn btn-brown" onclick="runReport()" data-i18n="runReport">Run Report</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h3 style="font-size:14px;color:var(--coffee-700)" data-i18n="results">Results</h3>
+            <button class="btn btn-outline btn-sm" onclick="exportReport()" data-i18n="exportXlsx">Export .xlsx</button>
+          </div>
+          <div class="table-wrap"><table id="reportTable"><thead><tr><th data-i18n="group">Group</th><th data-i18n="entries">Entries</th><th data-i18n="totalPerEntryTarget">Total Per-Entry Target</th><th data-i18n="totalActual">Total Actual</th><th data-i18n="totalKpiScore">Total KPI Score</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- MASTERS (Manager only) -->
+      <section class="view" id="view-masters">
+        <h2 class="view-title" data-i18n="mastersTitle">Master Data</h2>
+        <p class="view-sub" data-i18n="mastersSub">Staff, Activities and Workflows (read-only view — edit directly in Google Sheets for now)</p>
+        <div class="card">
+          <h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="staffMaster">Staff Master</h3>
+          <div class="table-wrap"><table id="staffTable"><thead><tr><th data-i18n="id">ID</th><th data-i18n="name">Name</th><th data-i18n="designation">Designation</th><th data-i18n="section">Section</th><th data-i18n="status">Status</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:10px;font-size:14px;color:var(--coffee-700)" data-i18n="workflowMaster">Activity &amp; Workflow Master</h3>
+          <div class="table-wrap"><table id="workflowTable"><thead><tr><th data-i18n="activity">Activity</th><th data-i18n="workflow">Workflow</th><th data-i18n="kpi">KPI</th><th data-i18n="unit">Unit</th><th data-i18n="perEntryTarget">Per-Entry Target</th><th data-i18n="weightagePct">Weightage %</th><th data-i18n="maxScore">Max Score</th><th data-i18n="expectedOutput">Expected Output</th><th data-i18n="status">Status</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <nav class="bottom-nav" id="bottomNav"></nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIG — paste your deployed Apps Script Web App URL here
+   ============================================================ */
+const API_URL = "https://script.google.com/macros/s/AKfycbwFtoMgDobWQAZ8kP7CjCy2nzQ6O_ZYEUmWDfS-d12P5CF9z8XHJvsqLALSdsgINu5n/exec";
+/*
+ * Sri Narasu's Coffee Company Pvt Ltd
+ * Stores Department - Staff Working Register & KPI Appraisal System
+ * Frontend only. Talks to the Apps Script backend (code.gs) via API_URL above.
+ *
+ * ROLE MODEL: 2 roles only -> Manager, Staff (no Admin tier)
+ *   Staff  : create/submit own Working Register, Attendance, Leave; view own KPI
+ *   Manager: everything Staff can do + view all staff, Approve/Reject entries,
+ *            manage Master data, view Reports & Appraisal for the whole department
+ */
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let SESSION = null;   // {userId, staffId, staffName, role}
+
+/* ============================================================
+   I18N (English / Tamil)
+   ============================================================ */
+const I18N = {
+  appTitle: { en: "Stores KPI &amp; Appraisal", ta: "ஸ்டோர்ஸ் KPI &amp; மதிப்பீடு" },
+  companyLine: { en: "Sri Narasu's Coffee Company Pvt Ltd &mdash; Stores Department", ta: "ஸ்ரீ நரசு'ஸ் காபி கம்பெனி பிரைவேட் லிமிடெட் &mdash; ஸ்டோர்ஸ் துறை" },
+  userId: { en: "User ID", ta: "பயனர் ஐடி" },
+  password: { en: "Password", ta: "கடவுச்சொல்" },
+  logIn: { en: "Log In", ta: "உள்நுழைக" },
+  logOut: { en: "Log Out", ta: "வெளியேறு" },
+  dashTitle: { en: "Dashboard", ta: "டாஷ்போர்டு" },
+  dashSub: { en: "Current month performance snapshot", ta: "நடப்பு மாத செயல்திறன் சுருக்கம்" },
+  teamResp: { en: "🏆 Team Responsibility", ta: "🏆 குழு பொறுப்பு" },
+  badge100: { en: "100 Years of Sri Narasu's Coffee", ta: "ஸ்ரீ நரசு'ஸ் காபியின் 100 ஆண்டுகள்" },
+  wePlan: { en: "We Plan", ta: "நாங்கள் திட்டமிடுகிறோம்" },
+  weCheck: { en: "We Check", ta: "நாங்கள் சரிபார்க்கிறோம்" },
+  weDo: { en: "We Do", ta: "நாங்கள் செய்கிறோம்" },
+  weImprove: { en: "We Improve", ta: "நாங்கள் மேம்படுத்துகிறோம்" },
+  weAchieve: { en: "We Achieve", ta: "நாங்கள் சாதிக்கிறோம்" },
+  teamTag: { en: "Together &middot; Focused &middot; Committed &middot; Successful", ta: "ஒன்றாக &middot; கவனத்துடன் &middot; அர்ப்பணிப்புடன் &middot; வெற்றியுடன்" },
+  kpiByStaff: { en: "KPI Score by Staff", ta: "பணியாளர் வாரியான KPI மதிப்பெண்" },
+  kpiByActivity: { en: "KPI Score by Activity", ta: "செயல்பாடு வாரியான KPI மதிப்பெண்" },
+  regTitle: { en: "Working Register", ta: "பணி பதிவேடு" },
+  regSub: { en: "Pick the Date and Activity once, then tick every workflow you performed.", ta: "தேதி மற்றும் செயல்பாட்டை ஒருமுறை தேர்ந்தெடுத்து, நீங்கள் செய்த ஒவ்வொரு பணிப்பாய்வையும் தேர்வு செய்யவும்." },
+  date: { en: "Date", ta: "தேதி" },
+  activity: { en: "Activity", ta: "செயல்பாடு" },
+  select: { en: "Select", ta: "தேர்ந்தெடு" },
+  selectWorkflows: { en: "Select Workflows", ta: "பணிப்பாய்வுகளைத் தேர்ந்தெடு" },
+  selectAll: { en: "Select All", ta: "அனைத்தையும் தேர்ந்தெடு" },
+  clearAll: { en: "Clear All", ta: "அனைத்தையும் அழி" },
+  remarksOpt: { en: "Remarks (optional)", ta: "குறிப்புகள் (விருப்பம்)" },
+  saveDraft: { en: "🟡 Save Draft", ta: "🟡 வரைவைச் சேமி" },
+  submitBtn: { en: "🟢 Submit", ta: "🟢 சமர்ப்பி" },
+  myDrafts: { en: "My Draft Entries", ta: "எனது வரைவு பதிவுகள்" },
+  recentEntries: { en: "Recent Entries", ta: "சமீபத்திய பதிவுகள்" },
+  staff: { en: "Staff", ta: "பணியாளர்" },
+  workflow: { en: "Workflow", ta: "பணிப்பாய்வு" },
+  perEntryTarget: { en: "Per-Entry Target", ta: "ஒரு பதிவுக்கான இலக்கு" },
+  actual: { en: "Actual", ta: "உண்மையான" },
+  kpiScore: { en: "KPI Score", ta: "KPI மதிப்பெண்" },
+  status: { en: "Status", ta: "நிலை" },
+  targetsTitle: { en: "Monthly Target Management", ta: "மாதாந்திர இலக்கு மேலாண்மை" },
+  targetsSub: { en: "Set the monthly target for each Activity → Workflow. Manager only.", ta: "ஒவ்வொரு செயல்பாடு → பணிப்பாய்வுக்கும் மாதாந்திர இலக்கை அமைக்கவும். மேலாளர் மட்டும்." },
+  month: { en: "Month", ta: "மாதம்" },
+  selectActivityFirst: { en: "Select Activity first", ta: "முதலில் செயல்பாட்டைத் தேர்ந்தெடு" },
+  monthlyTarget: { en: "Monthly Target", ta: "மாதாந்திர இலக்கு" },
+  saveTarget: { en: "Save Target", ta: "இலக்கைச் சேமி" },
+  targetsForMonth: { en: "Targets for Selected Month", ta: "தேர்ந்தெடுக்கப்பட்ட மாதத்திற்கான இலக்குகள்" },
+  kpi: { en: "KPI", ta: "KPI" },
+  targetStatusTitle: { en: "Target Status", ta: "இலக்கு நிலை" },
+  targetStatusSub: { en: "Progress of each workflow against its monthly target (Approved entries only)", ta: "ஒவ்வொரு பணிப்பாய்வின் மாதாந்திர இலக்கிற்கு எதிரான முன்னேற்றம் (அங்கீகரிக்கப்பட்ட பதிவுகள் மட்டும்)" },
+  target: { en: "Target", ta: "இலக்கு" },
+  source: { en: "Source", ta: "மூலம்" },
+  approvedQty: { en: "Approved Qty", ta: "அங்கீகரிக்கப்பட்ட அளவு" },
+  remaining: { en: "Remaining", ta: "மீதமுள்ளது" },
+  progress: { en: "Progress", ta: "முன்னேற்றம்" },
+  approvalsTitle: { en: "Approvals", ta: "ஒப்புதல்கள்" },
+  approvalsSub: { en: "Review Draft and Submitted working register entries. Edit counts if needed before deciding.", ta: "வரைவு மற்றும் சமர்ப்பிக்கப்பட்ட பணி பதிவேடு உள்ளீடுகளை மதிப்பாய்வு செய்யவும். முடிவெடுப்பதற்கு முன் தேவைப்பட்டால் எண்ணிக்கைகளைத் திருத்தவும்." },
+  submittedEntries: { en: "Submitted Entries", ta: "சமர்ப்பிக்கப்பட்ட பதிவுகள்" },
+  draftEntries: { en: "Draft Entries", ta: "வரைவு பதிவுகள்" },
+  attendanceTitle: { en: "Attendance", ta: "வருகைப் பதிவு" },
+  attendanceSub: { en: "Mark daily attendance", ta: "தினசரி வருகையைக் குறிக்கவும்" },
+  present: { en: "Present", ta: "வருகை" },
+  absent: { en: "Absent", ta: "வராதவர்" },
+  halfDay: { en: "Half Day", ta: "அரை நாள்" },
+  permission: { en: "Permission", ta: "அனுமதி" },
+  permHours: { en: "Permission Hours", ta: "அனுமதி மணிநேரம்" },
+  remarks: { en: "Remarks", ta: "குறிப்புகள்" },
+  saveAttendance: { en: "Save Attendance", ta: "வருகையைச் சேமி" },
+  permHrs: { en: "Permission Hrs", ta: "அனுமதி மணிநேரம்" },
+  leaveTitle: { en: "Leave", ta: "விடுப்பு" },
+  leaveSub: { en: "Apply for leave and track status", ta: "விடுப்புக்கு விண்ணப்பித்து நிலையைக் கண்காணிக்கவும்" },
+  from: { en: "From", ta: "தொடங்கும் தேதி" },
+  to: { en: "To", ta: "முடியும் தேதி" },
+  type: { en: "Type", ta: "வகை" },
+  casual: { en: "Casual", ta: "சாதாரண" },
+  sick: { en: "Sick", ta: "நோய்" },
+  earned: { en: "Earned", ta: "ஈட்டிய" },
+  unpaid: { en: "Unpaid", ta: "ஊதியமற்ற" },
+  reason: { en: "Reason", ta: "காரணம்" },
+  applyLeave: { en: "Apply Leave", ta: "விடுப்புக்கு விண்ணப்பி" },
+  myMemosTitle: { en: "My Memos", ta: "எனது மெமோக்கள்" },
+  myMemosSub: { en: "Memos issued to you. Open one to read the details and add your reply.", ta: "உங்களுக்கு வழங்கப்பட்ட மெமோக்கள். விவரங்களைப் படித்து பதில் அளிக்க ஒன்றைத் திறக்கவும்." },
+  memoNo: { en: "Memo No", ta: "மெமோ எண்" },
+  category: { en: "Category", ta: "வகை" },
+  actionType: { en: "Action Type", ta: "நடவடிக்கை வகை" },
+  staffApprTitle: { en: "Staff Appraisal", ta: "பணியாளர் மதிப்பீடு" },
+  staffApprSub: { en: "KPI-based appraisal for a custom date range", ta: "தேர்ந்தெடுக்கப்பட்ட தேதி வரம்பிற்கான KPI அடிப்படையிலான மதிப்பீடு" },
+  runAppraisal: { en: "Run Appraisal", ta: "மதிப்பீட்டை இயக்கு" },
+  results: { en: "Results", ta: "முடிவுகள்" },
+  exportXlsx: { en: "Export .xlsx", ta: ".xlsx ஏற்றுமதி" },
+  designation: { en: "Designation", ta: "பதவி" },
+  section: { en: "Section", ta: "பிரிவு" },
+  entries: { en: "Entries", ta: "பதிவுகள்" },
+  hrApprTitle: { en: "HR Appraisal", ta: "HR மதிப்பீடு" },
+  hrApprSub: { en: "8-criteria KPI appraisal (100 marks) with Special Recognition bonus, Memo/Disciplinary deductions, Final Score and Rating.", ta: "சிறப்பு அங்கீகார போனஸ், மெமோ/ஒழுங்கு நடவடிக்கை கழிவுகள், இறுதி மதிப்பெண் மற்றும் தரவரிசையுடன் கூடிய 8-அளவுகோல் KPI மதிப்பீடு (100 மதிப்பெண்கள்)." },
+  periodLabel: { en: "Period Label", ta: "காலப்பகுதி பெயர்" },
+  saveSnapshot: { en: "💾 Save Snapshot", ta: "💾 ஸ்னாப்ஷாட்டைச் சேமி" },
+  periodLabelInfo: { en: "Period Label tags Recognition, Memo and Manual Score records for this cycle (e.g. \"Jul-2026\"). Saving a Snapshot lets the Department Dashboard build a Monthly/Yearly trend.", ta: "காலப்பகுதி பெயர் இந்த சுழற்சிக்கான அங்கீகாரம், மெமோ மற்றும் கைமுறை மதிப்பெண் பதிவுகளைக் குறிக்கிறது (எ.கா. \"Jul-2026\"). ஸ்னாப்ஷாட்டைச் சேமிப்பது துறை டாஷ்போர்டு மாதாந்திர/ஆண்டு போக்கை உருவாக்க உதவும்." },
+  tabScorecard: { en: "📊 Scorecard", ta: "📊 மதிப்பெண் அட்டை" },
+  tabRecognition: { en: "🏅 Recognition (Bonus)", ta: "🏅 அங்கீகாரம் (போனஸ்)" },
+  tabMemoMgmt: { en: "📄 Memo Management", ta: "📄 மெமோ மேலாண்மை" },
+  tabManualScores: { en: "✍️ Manual Scores", ta: "✍️ கைமுறை மதிப்பெண்கள்" },
+  tabHrSummary: { en: "📋 HR Summary", ta: "📋 HR சுருக்கம்" },
+  tabDeptDashboard: { en: "📈 Department Dashboard", ta: "📈 துறை டாஷ்போர்டு" },
+  scorecardHeader: { en: "Staff-Wise KPI Scorecard", ta: "பணியாளர் வாரியான KPI மதிப்பெண் அட்டை" },
+  employee: { en: "Employee", ta: "பணியாளர்" },
+  attCol: { en: "Att.(10)", ta: "வருகை(10)" },
+  prodCol: { en: "Prod.(30)", ta: "உற்பத்தி(30)" },
+  qualCol: { en: "Qual.(10)", ta: "தரம்(10)" },
+  teamCol: { en: "Team(10)", ta: "குழு(10)" },
+  discCol: { en: "Disc.(10)", ta: "ஒழுங்கு(10)" },
+  initCol: { en: "Init.(10)", ta: "முன்முயற்சி(10)" },
+  trainCol: { en: "Train(10)", ta: "பயிற்சி(10)" },
+  servCol: { en: "Serv.(10)", ta: "சேவை(10)" },
+  kpi100Col: { en: "KPI(100)", ta: "KPI(100)" },
+  bonus: { en: "Bonus", ta: "போனஸ்" },
+  memo: { en: "Memo", ta: "மெமோ" },
+  final: { en: "Final", ta: "இறுதி" },
+  rating: { en: "Rating", ta: "தரவரிசை" },
+  addRecognition: { en: "Add Special Recognition (Bonus)", ta: "சிறப்பு அங்கீகாரம் சேர் (போனஸ்)" },
+  bonusMarks: { en: "Bonus Marks (2–5)", ta: "போனஸ் மதிப்பெண்கள் (2–5)" },
+  addRecognitionBtn: { en: "Add Recognition", ta: "அங்கீகாரம் சேர்" },
+  recogThisPeriod: { en: "Recognitions — This Period", ta: "அங்கீகாரங்கள் — இந்தக் காலப்பகுதி" },
+  issueNewMemo: { en: "Issue New Memo", ta: "புதிய மெமோ வழங்கு" },
+  memoDate: { en: "Memo Date", ta: "மெமோ தேதி" },
+  reasonShort: { en: "Reason (short)", ta: "காரணம் (சுருக்கமாக)" },
+  descDetailed: { en: "Description (detailed)", ta: "விவரம் (விரிவானது)" },
+  attachLink: { en: "Attachment Link (optional)", ta: "இணைப்பு இணைப்பு (விருப்பம்)" },
+  issueMemoBtn: { en: "Issue Memo", ta: "மெமோவை வழங்கு" },
+  memosThisPeriod: { en: "Memos — This Period", ta: "மெமோக்கள் — இந்தக் காலப்பகுதி" },
+  deduction: { en: "Deduction", ta: "கழிவு" },
+  enterManualCriteria: { en: "Enter Manual Criteria (0–10 each)", ta: "கைமுறை அளவுகோல்களை உள்ளிடவும் (ஒவ்வொன்றும் 0–10)" },
+  qualityAccuracy: { en: "Quality &amp; Accuracy", ta: "தரம் &amp; துல்லியம்" },
+  teamworkComm: { en: "Teamwork &amp; Communication", ta: "குழுப்பணி &amp; தொடர்பு" },
+  disciplineCompliance: { en: "Discipline &amp; Compliance", ta: "ஒழுங்கு &amp; இணக்கம்" },
+  initiativeProblem: { en: "Initiative &amp; Problem Solving", ta: "முன்முயற்சி &amp; பிரச்சனை தீர்வு" },
+  trainingSkill: { en: "Training &amp; Skill Dev.", ta: "பயிற்சி &amp; திறன் மேம்பாடு" },
+  serviceBehaviour: { en: "Service &amp; Behaviour", ta: "சேவை &amp; நடத்தை" },
+  comments: { en: "Comments", ta: "கருத்துகள்" },
+  saveManualScores: { en: "Save Manual Scores", ta: "கைமுறை மதிப்பெண்களைச் சேமி" },
+  manualScoresThisPeriod: { en: "Manual Scores — This Period", ta: "கைமுறை மதிப்பெண்கள் — இந்தக் காலப்பகுதி" },
+  qualCol2: { en: "Qual.", ta: "தரம்" },
+  teamCol2: { en: "Team", ta: "குழு" },
+  discCol2: { en: "Disc.", ta: "ஒழுங்கு" },
+  initCol2: { en: "Init.", ta: "முன்முயற்சி" },
+  trainCol2: { en: "Train", ta: "பயிற்சி" },
+  servCol2: { en: "Serv.", ta: "சேவை" },
+  topPerformers: { en: "🏆 Top Performers (≥90)", ta: "🏆 சிறந்த செயல்பாட்டாளர்கள் (≥90)" },
+  needingImprovement: { en: "⚠️ Needing Improvement (&lt;70)", ta: "⚠️ மேம்பாடு தேவை (&lt;70)" },
+  eligiblePromotion: { en: "⬆️ Eligible for Promotion (≥85)", ta: "⬆️ பதவி உயர்வுக்கு தகுதியானவர்கள் (≥85)" },
+  recommendedIncrement: { en: "💰 Recommended for Increment (≥80)", ta: "💰 ஊதிய உயர்வுக்கு பரிந்துரைக்கப்பட்டவர்கள் (≥80)" },
+  recommendedTraining: { en: "🎓 Recommended for Training", ta: "🎓 பயிற்சிக்கு பரிந்துரைக்கப்பட்டவர்கள்" },
+  disciplinaryConcerns: { en: "📄 Disciplinary Concerns", ta: "📄 ஒழுங்கு நடவடிக்கை கவலைகள்" },
+  staffRanking: { en: "Staff Ranking", ta: "பணியாளர் தரவரிசை" },
+  rank: { en: "Rank", ta: "தரவரிசை" },
+  department: { en: "Department", ta: "துறை" },
+  finalScore: { en: "Final Score", ta: "இறுதி மதிப்பெண்" },
+  bonusMemoImpact: { en: "Bonus / Memo Impact", ta: "போனஸ் / மெமோ தாக்கம்" },
+  monthlyTrendChart: { en: "Monthly Trend (from saved snapshots)", ta: "மாதாந்திர போக்கு (சேமிக்கப்பட்ட ஸ்னாப்ஷாட்களில் இருந்து)" },
+  reportsTitle: { en: "Reports", ta: "அறிக்கைகள்" },
+  reportsSub: { en: "Staff-wise, Activity-wise, Workflow-wise and Section-wise reports for a custom date range", ta: "தேர்ந்தெடுக்கப்பட்ட தேதி வரம்பிற்கான பணியாளர், செயல்பாடு, பணிப்பாய்வு மற்றும் பிரிவு வாரியான அறிக்கைகள்" },
+  groupBy: { en: "Group By", ta: "தொகுப்பாக்கு" },
+  runReport: { en: "Run Report", ta: "அறிக்கையை இயக்கு" },
+  group: { en: "Group", ta: "தொகுப்பு" },
+  totalPerEntryTarget: { en: "Total Per-Entry Target", ta: "மொத்த ஒரு பதிவு இலக்கு" },
+  totalActual: { en: "Total Actual", ta: "மொத்த உண்மையானது" },
+  totalKpiScore: { en: "Total KPI Score", ta: "மொத்த KPI மதிப்பெண்" },
+  mastersTitle: { en: "Master Data", ta: "மூல தரவு" },
+  mastersSub: { en: "Staff, Activities and Workflows (read-only view — edit directly in Google Sheets for now)", ta: "பணியாளர்கள், செயல்பாடுகள் மற்றும் பணிப்பாய்வுகள் (படிக்க மட்டும் — தற்போதைக்கு Google Sheets இல் நேரடியாகத் திருத்தவும்)" },
+  staffMaster: { en: "Staff Master", ta: "பணியாளர் மூலத் தரவு" },
+  id: { en: "ID", ta: "ஐடி" },
+  name: { en: "Name", ta: "பெயர்" },
+  workflowMaster: { en: "Activity &amp; Workflow Master", ta: "செயல்பாடு &amp; பணிப்பாய்வு மூலத் தரவு" },
+  unit: { en: "Unit", ta: "அலகு" },
+  weightagePct: { en: "Weightage %", ta: "எடை %" },
+  maxScore: { en: "Max Score", ta: "அதிகபட்ச மதிப்பெண்" },
+  expectedOutput: { en: "Expected Output", ta: "எதிர்பார்க்கப்படும் வெளியீடு" },
+  enterCreds: { en: "Enter User ID and Password.", ta: "பயனர் ஐடி மற்றும் கடவுச்சொல்லை உள்ளிடவும்." },
+  loggingIn: { en: "Logging in...", ta: "உள்நுழைகிறது..." },
+  approvedEntriesMtd: { en: "Approved Entries (MTD)", ta: "அங்கீகரிக்கப்பட்ட பதிவுகள் (இம்மாதம்)" },
+  totalKpiPctMtd: { en: "Total KPI % (MTD)", ta: "மொத்த KPI % (இம்மாதம்)" },
+  pendingApprovals: { en: "Pending Approvals", ta: "நிலுவையிலுள்ள ஒப்புதல்கள்" },
+  role: { en: "Role", ta: "பங்கு" },
+  savedAsDraft: { en: "Saved as draft", ta: "வரைவாகச் சேமிக்கப்பட்டது" },
+  submittedForApproval: { en: "Submitted for approval", ta: "ஒப்புதலுக்காக சமர்ப்பிக்கப்பட்டது" },
+  selectDate: { en: "Select a date", ta: "ஒரு தேதியைத் தேர்ந்தெடுக்கவும்" },
+  selectActivity: { en: "Select an activity", ta: "ஒரு செயல்பாட்டைத் தேர்ந்தெடுக்கவும்" },
+  tickWorkflow: { en: "Tick at least one workflow", ta: "குறைந்தது ஒரு பணிப்பாய்வையாவது தேர்வு செய்யவும்" },
+  draftDeleted: { en: "Draft deleted", ta: "வரைவு நீக்கப்பட்டது" },
+  confirmDeleteDraft: { en: "Delete this draft entry?", ta: "இந்த வரைவு பதிவை நீக்கவா?" },
+  monthlyTargetSaved: { en: "Monthly target saved", ta: "மாதாந்திர இலக்கு சேமிக்கப்பட்டது" },
+  targetDeleted: { en: "Target deleted", ta: "இலக்கு நீக்கப்பட்டது" },
+  selectMonthActivityWorkflow: { en: "Select Month, Activity and Workflow", ta: "மாதம், செயல்பாடு மற்றும் பணிப்பாய்வைத் தேர்ந்தெடுக்கவும்" },
+  entryUpdated: { en: "Entry updated", ta: "பதிவு புதுப்பிக்கப்பட்டது" },
+  attendanceSaved: { en: "Attendance saved", ta: "வருகை சேமிக்கப்பட்டது" },
+  leaveApplied: { en: "Leave applied", ta: "விடுப்பு விண்ணப்பிக்கப்பட்டது" },
+  selectFromTo: { en: "Select From and To dates", ta: "தொடக்க மற்றும் முடிவு தேதிகளைத் தேர்ந்தெடுக்கவும்" },
+  runApprFirst: { en: "Run the appraisal first", ta: "முதலில் மதிப்பீட்டை இயக்கவும்" },
+  enterPeriodFromTo: { en: "Enter Period Label, From and To", ta: "காலப்பகுதி பெயர், தொடக்க மற்றும் முடிவு தேதிகளை உள்ளிடவும்" },
+  setPeriodFirst: { en: "Set a Period Label first", ta: "முதலில் ஒரு காலப்பகுதி பெயரை அமைக்கவும்" },
+  reasonRequired: { en: "Reason is required", ta: "காரணம் தேவை" },
+  deleted: { en: "Deleted", ta: "நீக்கப்பட்டது" },
+  enterCountAbove0: { en: "Enter a Count above 0 for:", ta: "பின்வருவனவற்றுக்கு 0-க்கு மேல் ஒரு எண்ணிக்கையை உள்ளிடவும்:" },
+  recognitionAdded: { en: "Recognition added", ta: "அங்கீகாரம் சேர்க்கப்பட்டது" },
+  memoIssuedToast: { en: "Memo issued", ta: "மெமோ வழங்கப்பட்டது" },
+  reviewSaved: { en: "Review saved", ta: "மதிப்பாய்வு சேமிக்கப்பட்டது" },
+  selectFinalDecision: { en: "Select a Final Decision", ta: "இறுதி முடிவைத் தேர்ந்தெடுக்கவும்" },
+  finalDecisionSaved: { en: "Final decision saved", ta: "இறுதி முடிவு சேமிக்கப்பட்டது" },
+  enterReplyFirst: { en: "Enter a reply first", ta: "முதலில் ஒரு பதிலை உள்ளிடவும்" },
+  replySubmitted: { en: "Reply submitted", ta: "பதில் சமர்ப்பிக்கப்பட்டது" },
+  manualScoresSaved: { en: "Manual scores saved", ta: "கைமுறை மதிப்பெண்கள் சேமிக்கப்பட்டன" },
+  snapshotSavedFor: { en: "Snapshot saved for", ta: "இதற்கான ஸ்னாப்ஷாட் சேமிக்கப்பட்டது:" },
+  staffLower: { en: "staff", ta: "பணியாளர்கள்" },
+  runReportFirst: { en: "Run the report first", ta: "முதலில் அறிக்கையை இயக்கவும்" },
+  decision_Approved: { en: "Approved", ta: "அங்கீகரிக்கப்பட்டது" },
+  decision_Rejected: { en: "Rejected", ta: "நிராகரிக்கப்பட்டது" },
+  noDrafts: { en: "No drafts", ta: "வரைவுகள் இல்லை" },
+  noEntriesYet: { en: "No entries yet", ta: "இதுவரை பதிவுகள் இல்லை" },
+  noTargetsMonth: { en: "No targets set for this month yet", ta: "இந்த மாதத்திற்கு இலக்குகள் இதுவரை அமைக்கப்படவில்லை" },
+  noWorkflowsFound: { en: "No workflows found", ta: "பணிப்பாய்வுகள் எதுவும் இல்லை" },
+  noAttendanceRecords: { en: "No attendance records", ta: "வருகைப் பதிவுகள் இல்லை" },
+  noLeaveRecords: { en: "No leave records", ta: "விடுப்புப் பதிவுகள் இல்லை" },
+  noApprovedRange: { en: "No approved entries in this range", ta: "இந்த வரம்பில் அங்கீகரிக்கப்பட்ட பதிவுகள் இல்லை" },
+  noActiveStaffData: { en: "No active staff / no data for this period", ta: "செயலில் உள்ள பணியாளர்கள் இல்லை / இந்தக் காலப்பகுதிக்கு தரவு இல்லை" },
+  noneThisPeriod: { en: "None this period", ta: "இந்தக் காலப்பகுதியில் எதுவும் இல்லை" },
+  noMemosOnRecord: { en: "No memos on record", ta: "பதிவில் மெமோக்கள் இல்லை" },
+  noManualScoresYet: { en: "No manual scores entered yet this period", ta: "இந்தக் காலப்பகுதியில் இதுவரை கைமுறை மதிப்பெண்கள் உள்ளிடப்படவில்லை" },
+  none: { en: "None", ta: "எதுவும் இல்லை" },
+  noData: { en: "No data", ta: "தரவு இல்லை" },
+  noDataRange: { en: "No data for this range", ta: "இந்த வரம்பிற்கு தரவு இல்லை" },
+  approveAll: { en: "Approve All", ta: "அனைத்தையும் அங்கீகரி" },
+  editBtn: { en: "Edit", ta: "திருத்து" },
+  approveBtn: { en: "Approve", ta: "அங்கீகரி" },
+  rejectBtn: { en: "Reject", ta: "நிராகரி" },
+  cancelBtn: { en: "Cancel", ta: "ரத்துசெய்" },
+  deleteBtn: { en: "Delete", ta: "நீக்கு" },
+  viewBtn: { en: "View", ta: "பார்" },
+};
+let CURRENT_LANG = localStorage.getItem('kpi_lang') || 'en';
+
+function T(key) {
+  const e = I18N[key];
+  if (!e) return key;
+  return (CURRENT_LANG === 'ta' && e.ta) ? e.ta : e.en;
+}
+
+function applyI18n() {
+  document.documentElement.setAttribute('data-lang', CURRENT_LANG);
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = T(key);
+    if (el.tagName === 'OPTION' || el.tagName === 'INPUT' || el.tagName === 'BUTTON' || el.tagName === 'LABEL' ||
+        el.tagName === 'SPAN' || el.tagName === 'TH' || el.tagName === 'H1' || el.tagName === 'H2' ||
+        el.tagName === 'H3' || el.tagName === 'H4' || el.tagName === 'P' || el.tagName === 'DIV') {
+      el.innerHTML = val;
+    } else {
+      el.textContent = val;
+    }
+  });
+  document.querySelectorAll('.lang-toggle').forEach(b => {
+    b.textContent = CURRENT_LANG === 'ta' ? 'EN / தமிழ்' : 'தமிழ் / EN';
+  });
+}
+
+function toggleLang() {
+  CURRENT_LANG = (CURRENT_LANG === 'ta') ? 'en' : 'ta';
+  localStorage.setItem('kpi_lang', CURRENT_LANG);
+  applyI18n();
+  // Re-render anything already built dynamically in the current language
+  if (SESSION) {
+    buildNav();
+  }
+}
+
+let MASTERS = { staff: [], activities: [], workflows: [] };
+// Mirrors TEAM_WORKFLOW_IDS in code.gs - specific Workflows (not whole
+// Activities) where several staff share the same truck/bill. EDIT THIS LIST
+// to exactly match TEAM_WORKFLOW_IDS in code.gs, or the Co-Staff checklist
+// will show up for the wrong workflows on the form.
+const TEAM_WORKFLOW_IDS = ['WF0001', 'WF0009', 'WF0019', 'WF0021', 'WF0023', 'WF0027', 'WF0033', 'WF0036', 'WF0039', 'WF0041'];
+
+/* ============================================================
+   API WRAPPER
+   ============================================================ */
+async function callApi(action, params) {
+  if (!API_URL || API_URL.indexOf('PASTE_') === 0) {
+    throw new Error('Backend not connected yet. Deploy code.gs and set API_URL (see SETUP.md).');
+  }
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight on Apps Script
+    body: JSON.stringify({ action, params })
+  });
+  const out = await res.json();
+  if (!out.ok) throw new Error(out.error || 'Unknown API error');
+  return out.data;
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+async function doLogin() {
+  const userId = document.getElementById('loginUserId').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const err = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  err.textContent = '';
+  if (!userId || !password) { err.textContent = T('enterCreds'); return; }
+  btn.disabled = true; btn.textContent = T('loggingIn');
+  try {
+    const data = await callApi('login', { userId, password });
+    SESSION = data;
+    sessionStorage.setItem('kpi_session', JSON.stringify(data));
+    enterApp();
+  } catch (e) {
+    err.textContent = e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = T('logIn');
+  }
+}
+
+function logout() {
+  SESSION = null;
+  hrInited = false;
+  sessionStorage.removeItem('kpi_session');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+const NAV_ITEMS = [
+  { id: 'dashboard', label: '📊 Dashboard', labelTa: '📊 டாஷ்போர்டு', roles: ['Manager', 'Staff'] },
+  { id: 'register', label: '📝 Working Register', labelTa: '📝 பணி பதிவேடு', roles: ['Manager', 'Staff'] },
+  { id: 'targets', label: '🎯 Monthly Targets', labelTa: '🎯 மாதாந்திர இலக்குகள்', roles: ['Manager'] },
+  { id: 'targetStatus', label: '📈 Target Status', labelTa: '📈 இலக்கு நிலை', roles: ['Manager', 'Staff'] },
+  { id: 'approvals', label: '✅ Approvals', labelTa: '✅ ஒப்புதல்கள்', roles: ['Manager'] },
+  { id: 'attendance', label: '🗓️ Attendance', labelTa: '🗓️ வருகைப் பதிவு', roles: ['Manager', 'Staff'] },
+  { id: 'leave', label: '🌴 Leave', labelTa: '🌴 விடுப்பு', roles: ['Manager', 'Staff'] },
+  { id: 'myMemos', label: '📄 My Memos', labelTa: '📄 எனது மெமோக்கள்', roles: ['Staff'] },
+  { id: 'appraisal', label: '🏆 Staff Appraisal', labelTa: '🏆 பணியாளர் மதிப்பீடு', roles: ['Manager'] },
+  { id: 'hrAppraisal', label: '🎖️ HR Appraisal', labelTa: '🎖️ HR மதிப்பீடு', roles: ['Manager'] },
+  { id: 'reports', label: '📁 Reports', labelTa: '📁 அறிக்கைகள்', roles: ['Manager'] },
+  { id: 'masters', label: '⚙️ Master Data', labelTa: '⚙️ மூல தரவு', roles: ['Manager'] }
+];
+
+function navLabel(n) { return (CURRENT_LANG === 'ta' && n.labelTa) ? n.labelTa : n.label; }
+
+function buildNav() {
+  const items = NAV_ITEMS.filter(n => n.roles.includes(SESSION.role));
+  const sidebar = document.getElementById('sidebar');
+  const bottom = document.getElementById('bottomNav');
+  sidebar.innerHTML = '';
+  bottom.innerHTML = '';
+  items.forEach((n, i) => {
+    const lbl = navLabel(n);
+    const b1 = document.createElement('button');
+    b1.textContent = lbl;
+    b1.onclick = () => showView(n.id);
+    b1.dataset.nav = n.id;
+    sidebar.appendChild(b1);
+
+    const b2 = document.createElement('button');
+    b2.textContent = lbl.split(' ')[0];
+    b2.onclick = () => showView(n.id);
+    b2.dataset.nav = n.id;
+    bottom.appendChild(b2);
+  });
+  showView(items[0].id);
+}
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === id));
+  if (id === 'dashboard') loadDashboard();
+  if (id === 'register') loadRegister();
+  if (id === 'targets') loadTargetsPage();
+  if (id === 'targetStatus') loadTargetStatus();
+  if (id === 'approvals') loadApprovals();
+  if (id === 'attendance') loadAttendance();
+  if (id === 'leave') loadLeave();
+  if (id === 'myMemos') loadMyMemos();
+  if (id === 'masters') loadMastersView();
+  if (id === 'hrAppraisal') initHrAppraisal();
+}
+
+/* ============================================================
+   APP BOOT
+   ============================================================ */
+async function enterApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('whoLabel').textContent = SESSION.staffName + ' · ' + SESSION.role;
+  try {
+    MASTERS = await callApi('getMasters', {});
+  } catch (e) { toast(e.message); }
+  buildNav();
+  document.getElementById('regDate').valueAsDate = new Date();
+  document.getElementById('attDate').valueAsDate = new Date();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const noteEl = document.getElementById('apiUrlNote');
+  if (!API_URL || API_URL.indexOf('PASTE_') === 0) {
+    noteEl.textContent = 'Not connected to a backend yet — see SETUP.md to deploy your Apps Script Web App and paste its URL into the API_URL constant in index.html.';
+    noteEl.style.display = 'block';
+  } else {
+    noteEl.style.display = 'none'; // API_URL is set — no warning needed
+  }
+
+  applyI18n();
+
+  const saved = sessionStorage.getItem('kpi_session');
+  if (saved) { SESSION = JSON.parse(saved); enterApp(); }
+});
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+async function loadDashboard() {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  const to = now.toISOString().slice(0, 10);
+  const p = { from, to };
+  if (SESSION.role === 'Staff') p.staffId = SESSION.staffId;
+  let d;
+  try { d = await callApi('getDashboard', p); } catch (e) { toast(e.message); return; }
+
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat-card"><div class="label">${T('approvedEntriesMtd')}</div><div class="value">${d.totalEntries}</div></div>
+    <div class="stat-card alt"><div class="label">${T('totalKpiPctMtd')}</div><div class="value">${d.totalKpiPct.toFixed(1)}%</div></div>
+    <div class="stat-card"><div class="label">${T('pendingApprovals')}</div><div class="value">${d.pendingApprovals}</div></div>
+    <div class="stat-card alt"><div class="label">${T('role')}</div><div class="value" style="font-size:18px">${SESSION.role}</div></div>
+  `;
+  drawBarChart('chartStaff', d.byStaff, '#6F4E37');
+  drawBarChart('chartActivity', d.byActivity, '#9C6B45');
+}
+
+let chartRefs = {};
+function drawBarChart(canvasId, dataObj, color) {
+  const labels = Object.keys(dataObj);
+  const values = Object.values(dataObj);
+  const ctx = document.getElementById(canvasId);
+  if (chartRefs[canvasId]) chartRefs[canvasId].destroy();
+  chartRefs[canvasId] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: values, backgroundColor: color, borderRadius: 5 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+}
+
+/* ============================================================
+   WORKING REGISTER
+   Fixed Date + Activity, tick which workflows were performed,
+   enter a Count for each ticked workflow, then Save Draft or Submit.
+   ============================================================ */
+function populateRegActivitySelect() {
+  const sel = document.getElementById('regActivity');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Select</option>' + MASTERS.activities.map(a =>
+    `<option value="${a['Activity ID']}">${a['Activity Name']}</option>`).join('');
+  sel.value = prev;
+}
+
+// Cache of the SELECTED ENTRY DATE's month Manager-set Monthly Targets, keyed by
+// "<Activity Name>||<Workflow Name>" -> Monthly Target value.
+// Loaded by loadCurrentMonthTargets() whenever the Working Register view opens
+// AND whenever the Date field on the entry form changes (see the 'change'
+// listener below) - the KPI Target hint must always reflect the month of the
+// date the staff is actually logging the entry for, not just today's real
+// calendar month (e.g. when backfilling a date in the previous/next month).
+let CURRENT_MONTH_TARGETS = {};
+
+// Resolves the Month label ("MMM-yyyy") that the KPI Target hint should use:
+// the month of whatever date is currently picked in the Working Register
+// Date field, falling back to today's month only if the Date field is empty.
+function regEntryMonthLabel() {
+  const dateVal = document.getElementById('regDate').value;
+  return dateVal ? monthInputToLabel(dateVal.slice(0, 7)) : monthInputToLabel(currentMonthInputValue());
+}
+
+async function loadCurrentMonthTargets() {
+  const month = regEntryMonthLabel();
+  try {
+    const rows = await callApi('getMonthlyTargets', { month });
+    const map = {};
+    rows.forEach(r => { map[r['Activity Name'] + '||' + r['Workflow Name']] = r['Monthly Target']; });
+    CURRENT_MONTH_TARGETS = map;
+  } catch (e) {
+    CURRENT_MONTH_TARGETS = {};
+  }
+}
+
+// Same fallback rule as mtShowDefaultTargetHint()/getEffectiveTarget(): use
+// this month's Manager-set target if one exists, otherwise fall back to the
+// Workflow/KPI Master's Default KPI Target (Expected Output / Target).
+function getEffectiveTargetDisplay(actId, w) {
+  const act = MASTERS.activities.find(a => a['Activity ID'] === actId);
+  const key = (act ? act['Activity Name'] : '') + '||' + w['Workflow Name'];
+  const monthly = CURRENT_MONTH_TARGETS[key];
+  if (monthly !== undefined && monthly !== '') return { value: monthly, source: 'monthly' };
+  const expected = w['Expected Output'];
+  const numericDefault = Number(expected);
+  const value = (expected !== '' && expected !== undefined && !isNaN(numericDefault))
+    ? numericDefault : (w['Target'] !== undefined ? w['Target'] : '—');
+  return { value, source: 'default' };
+}
+
+function renderWorkflowChecklist() {
+  const actId = document.getElementById('regActivity').value;
+  const wrap = document.getElementById('wfChecklistWrap');
+  const list = document.getElementById('wfChecklist');
+  if (!actId) { wrap.style.display = 'none'; list.innerHTML = ''; return; }
+  const wfs = MASTERS.workflows.filter(w => w['Activity ID'] === actId && w['Status'] !== 'Inactive');
+  const coStaffOptions = MASTERS.staff.filter(s => s['Staff ID'] !== SESSION.staffId && s['Status'] !== 'Inactive');
+  list.innerHTML = wfs.map(w => {
+    const isTeam = TEAM_WORKFLOW_IDS.indexOf(w['Workflow ID']) !== -1;
+    const target = getEffectiveTargetDisplay(actId, w);
+    return `
+    <div class="wf-row" data-wfid="${w['Workflow ID']}">
+      <label class="wf-label">
+        <input type="checkbox" class="wf-check" onchange="toggleWfCount('${w['Workflow ID']}')">
+        ${w['Workflow Name']}
+      </label>
+      <div style="font-size:11.5px;color:var(--coffee-500);margin:2px 0 6px 26px;">
+        KPI Target: <strong style="color:var(--coffee-700);">${target.value}</strong>
+        ${target.source === 'monthly' ? '(this month\'s target)' : '(default target — no monthly target set)'}
+      </div>
+      <div class="wf-count-box form-row" style="display:none;">
+        <div><label>Count</label><input type="number" class="wf-count" min="0" step="1" value="0"></div>
+        <div><label>Unit</label><input type="text" value="${w['Unit']}" readonly></div>
+      </div>
+      ${isTeam ? `
+      <div class="reg-co-staff-wrap" style="display:none;margin-top:10px;">
+        <label style="font-size:11.5px;font-weight:600;color:var(--coffee-700);text-transform:uppercase;letter-spacing:.04em;">Co-Staff who also worked on this (optional)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">
+          ${coStaffOptions.map(s => `
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;">
+              <input type="checkbox" class="reg-co-staff" value="${s['Staff ID']}"> ${s['Staff Name']}
+            </label>
+          `).join('')}
+        </div>
+        <p style="font-size:11.5px;color:var(--coffee-500);margin-top:6px;">
+          This workflow is team-based. Tick everyone who worked the same truck/bill with you — the points will be shared equally among all of you once approved. Leave everyone unticked if you did this alone.
+        </p>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+  wrap.style.display = wfs.length ? 'block' : 'none';
+}
+
+function toggleWfCount(wfId) {
+  const row = document.querySelector(`.wf-row[data-wfid="${wfId}"]`);
+  const checked = row.querySelector('.wf-check').checked;
+  row.querySelector('.wf-count-box').style.display = checked ? 'grid' : 'none';
+  const coWrap = row.querySelector('.reg-co-staff-wrap');
+  if (coWrap) coWrap.style.display = checked ? 'block' : 'none';
+}
+
+function toggleAllWorkflows(select) {
+  document.querySelectorAll('.wf-check').forEach(cb => {
+    cb.checked = select;
+    toggleWfCount(cb.closest('.wf-row').dataset.wfid);
+  });
+}
+
+async function saveWorkingEntries(mode) {
+  const date = document.getElementById('regDate').value;
+  const activityId = document.getElementById('regActivity').value;
+  if (!date) { toast(T('selectDate')); return; }
+  if (!activityId) { toast(T('selectActivity')); return; }
+  const remarks = document.getElementById('regRemarks').value;
+  const lines = [];
+  document.querySelectorAll('.wf-row').forEach(row => {
+    const cb = row.querySelector('.wf-check');
+    if (!cb.checked) return;
+    const wfId = row.dataset.wfid;
+    const wf = MASTERS.workflows.find(w => w['Workflow ID'] === wfId);
+    const isTeam = TEAM_WORKFLOW_IDS.indexOf(wfId) !== -1;
+    const coStaffIds = isTeam
+      ? Array.from(row.querySelectorAll('.reg-co-staff:checked')).map(cb2 => cb2.value)
+      : [];
+    lines.push({
+      activityId, workflowId: wfId, unit: wf['Unit'],
+      target: wf['Target'], actual: row.querySelector('.wf-count').value, remarks, coStaffIds
+    });
+  });
+  if (lines.length === 0) { toast(T('tickWorkflow')); return; }
+  const zeroCountWfs = lines.filter(l => Number(l.actual) <= 0).map(l => {
+    const wf = MASTERS.workflows.find(w => w['Workflow ID'] === l.workflowId);
+    return wf ? wf['Workflow Name'] : l.workflowId;
+  });
+  if (zeroCountWfs.length) {
+    toast(T('enterCountAbove0') + ' ' + zeroCountWfs.join(', '));
+    return;
+  }
+  try {
+    const r = await callApi('addWorkingEntries', { staffId: SESSION.staffId, staffName: SESSION.staffName, date, lines });
+    if (mode === 'Submitted') {
+      await callApi('submitEntryGroup', { staffId: SESSION.staffId, groupId: r.groupId });
+      toast(T('submittedForApproval'));
+    } else {
+      toast(T('savedAsDraft'));
+    }
+    document.getElementById('regActivity').value = '';
+    document.getElementById('regRemarks').value = '';
+    document.getElementById('wfChecklistWrap').style.display = 'none';
+    document.getElementById('wfChecklist').innerHTML = '';
+    loadRegister();
+  } catch (e) { toast(e.message); }
+}
+
+async function loadMyDrafts() {
+  const card = document.getElementById('myDraftsCard');
+  if (SESSION.role !== 'Staff') { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  let groups;
+  try { groups = await callApi('getEntryGroups', { status: 'Draft', staffId: SESSION.staffId }); }
+  catch (e) { toast(e.message); return; }
+  const list = document.getElementById('myDraftsList');
+  if (groups.length === 0) { list.innerHTML = `<div class="empty">${T('noDrafts')}</div>`; return; }
+  groups.sort((a, b) => new Date(b.date) - new Date(a.date));
+  list.innerHTML = groups.map(g => `
+    <div class="draft-row">
+      <div>${fmtDate(g.date)} &middot; ${g.lines[0]['Activity Name']} &middot; ${g.lines.length} workflow(s)</div>
+      <div>
+        <button class="btn btn-brown btn-sm" onclick="submitDraft('${g.groupId}')">Submit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteDraft('${g.groupId}')">${T('deleteBtn')}</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function submitDraft(groupId) {
+  try { await callApi('submitEntryGroup', { staffId: SESSION.staffId, groupId }); toast(T('submittedForApproval')); loadRegister(); }
+  catch (e) { toast(e.message); }
+}
+
+async function deleteDraft(groupId) {
+  if (!confirm(T('confirmDeleteDraft'))) return;
+  try {
+    await callApi('deleteEntryGroup', { actorRole: SESSION.role, actorUserId: SESSION.userId, staffId: SESSION.staffId, groupId });
+    toast(T('draftDeleted'));
+    loadRegister();
+  } catch (e) { toast(e.message); }
+}
+
+async function loadRegister() {
+  populateRegActivitySelect();
+  loadMyDrafts();
+  await loadCurrentMonthTargets();
+  // if a checklist is already showing (e.g. user switches views and back),
+  // refresh it so the KPI Target hints pick up the newly loaded targets
+  if (document.getElementById('regActivity').value) renderWorkflowChecklist();
+  const p = SESSION.role === 'Staff' ? { staffId: SESSION.staffId } : {};
+  let rows;
+  try { rows = await callApi('getWorkingRegister', p); } catch (e) { toast(e.message); return; }
+  rows.sort((a, b) => new Date(b['Date']) - new Date(a['Date']));
+  const tbody = document.querySelector('#registerTable tbody');
+  tbody.innerHTML = rows.slice(0, 50).map(r => {
+    const split = Number(r['Team Split Size']) > 1;
+    // Rejected (or any non-Approved) rows never earn KPI credit - always show
+    // 0 regardless of what the raw KPI Score / team split math would give.
+    const scoreCell = r['Approval Status'] !== 'Approved'
+      ? '0'
+      : (split
+        ? `${r['Effective KPI Score']} <span style="color:var(--coffee-500);font-size:11px;">(${r['KPI Score']} ÷ ${r['Team Split Size']})</span>`
+        : r['KPI Score']);
+    return `
+    <tr>
+      <td>${fmtDate(r['Date'])}</td><td>${r['Staff Name']}</td><td>${r['Activity Name']}</td><td>${r['Workflow Name']}</td>
+      <td>${r['Target']}</td><td>${r['Actual']}</td><td>${scoreCell}</td>
+      <td><span class="badge ${r['Approval Status']}">${r['Approval Status']}</span></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="8" class="empty">${T('noEntriesYet')}</td></tr>`;
+}
+
+/* ============================================================
+   MONTH LABEL HELPERS
+   <input type="month"> gives "2026-07" - backend Month column uses "Jul-2026"
+   ============================================================ */
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthInputToLabel(val) {
+  if (!val) return '';
+  const [y, m] = val.split('-');
+  return MONTH_NAMES[Number(m) - 1] + '-' + y;
+}
+function currentMonthInputValue() {
+  const now = new Date();
+  return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+}
+
+/* ============================================================
+   MONTHLY TARGETS (Manager)
+   ============================================================ */
+function mtPopulateWorkflows() {
+  const actId = document.getElementById('mtActivity').value;
+  const wfSelect = document.getElementById('mtWorkflow');
+  const wfs = MASTERS.workflows.filter(w => w['Activity ID'] === actId);
+  wfSelect.innerHTML = '<option value="">Select</option>' + wfs.map(w =>
+    `<option value="${w['Workflow ID']}">${w['Workflow Name']}</option>`).join('');
+  document.getElementById('mtDefaultHint').textContent = '';
+}
+
+// Shows what KPI Target will be used for this workflow if NO Monthly Target
+// is saved here - i.e. the Workflow/KPI Master's Default KPI Target
+// ("Expected Output"), same value getEffectiveTarget() would fall back to.
+function mtShowDefaultTargetHint() {
+  const wfId = document.getElementById('mtWorkflow').value;
+  const hint = document.getElementById('mtDefaultHint');
+  if (!wfId) { hint.textContent = ''; return; }
+  const wf = MASTERS.workflows.find(w => w['Workflow ID'] === wfId);
+  if (!wf) { hint.textContent = ''; return; }
+  const expected = wf['Expected Output'];
+  const numericDefault = Number(expected);
+  const defaultDisplay = (expected !== '' && expected !== undefined && !isNaN(numericDefault))
+    ? numericDefault : (wf['Target'] !== undefined ? wf['Target'] : '—');
+  hint.textContent = `If you leave this month's target unset, the Default KPI Target (${defaultDisplay}) from the Workflow/KPI Master will be used automatically.`;
+}
+
+async function saveMonthlyTarget() {
+  const monthVal = document.getElementById('mtMonth').value;
+  const activityId = document.getElementById('mtActivity').value;
+  const workflowId = document.getElementById('mtWorkflow').value;
+  const target = document.getElementById('mtTarget').value;
+  if (!monthVal || !activityId || !workflowId) { toast(T('selectMonthActivityWorkflow')); return; }
+  try {
+    await callApi('addMonthlyTarget', {
+      actorRole: SESSION.role, actorUserId: SESSION.userId,
+      month: monthInputToLabel(monthVal), activityId, workflowId, target
+    });
+    toast(T('monthlyTargetSaved'));
+    loadTargetsPage();
+  } catch (e) { toast(e.message); }
+}
+
+async function loadTargetsPage() {
+  const activitySelect = document.getElementById('mtActivity');
+  if (activitySelect.options.length <= 1) {
+    activitySelect.innerHTML = '<option value="">Select</option>' +
+      MASTERS.activities.map(a => `<option value="${a['Activity ID']}">${a['Activity Name']}</option>`).join('');
+  }
+  if (!document.getElementById('mtMonth').value) document.getElementById('mtMonth').value = currentMonthInputValue();
+  const month = monthInputToLabel(document.getElementById('mtMonth').value);
+  let rows;
+  try { rows = await callApi('getMonthlyTargets', { month }); } catch (e) { toast(e.message); return; }
+  document.querySelector('#targetsTable tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r['Activity Name']}</td><td>${r['Workflow Name']}</td><td>${r['KPI Name']}</td>
+      <td>${r['Monthly Target']}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteMonthlyTarget('${r['Target ID']}')">${T('deleteBtn')}</button></td>
+    </tr>`).join('') || `<tr><td colspan="5" class="empty">${T('noTargetsMonth')}</td></tr>`;
+}
+
+async function deleteMonthlyTarget(targetId) {
+  try {
+    await callApi('deleteMonthlyTarget', { actorRole: SESSION.role, actorUserId: SESSION.userId, targetId });
+    toast(T('targetDeleted'));
+    loadTargetsPage();
+  } catch (e) { toast(e.message); }
+}
+
+// re-load the targets table whenever the month picker changes
+document.addEventListener('DOMContentLoaded', () => {
+  const mtMonthEl = document.getElementById('mtMonth');
+  if (mtMonthEl) mtMonthEl.addEventListener('change', loadTargetsPage);
+
+  // Working Register: whenever the staff changes the entry Date, the KPI
+  // Target hint on each ticked workflow must reflect THAT date's month
+  // (Manager-set Monthly Target for that month, else the Default KPI Target),
+  // not just today's calendar month. Re-fetch that month's targets and
+  // re-render the checklist so the hint updates immediately.
+  const regDateEl = document.getElementById('regDate');
+  if (regDateEl) regDateEl.addEventListener('change', async () => {
+    await loadCurrentMonthTargets();
+    if (document.getElementById('regActivity').value) renderWorkflowChecklist();
+  });
+});
+
+/* ============================================================
+   TARGET STATUS (Manager + Staff, read-only)
+   ============================================================ */
+async function loadTargetStatus() {
+  if (!document.getElementById('tsMonth').value) document.getElementById('tsMonth').value = currentMonthInputValue();
+  const month = monthInputToLabel(document.getElementById('tsMonth').value);
+  let d;
+  try { d = await callApi('getTargetDashboard', { month }); } catch (e) { toast(e.message); return; }
+
+  document.getElementById('targetDashStats').innerHTML = `
+    <div class="stat-card"><div class="label">Total Monthly Target</div><div class="value">${d.totalMonthlyTarget}</div></div>
+    <div class="stat-card alt"><div class="label">Total Approved Qty</div><div class="value">${d.totalApprovedQty}</div></div>
+    <div class="stat-card"><div class="label">Remaining Target</div><div class="value">${d.remainingTarget}</div></div>
+    <div class="stat-card alt"><div class="label">Overall Progress</div><div class="value">${d.overallProgressPct}%</div></div>
+    <div class="stat-card"><div class="label">Total Workflows</div><div class="value">${d.totalWorkflows}</div></div>
+    <div class="stat-card alt"><div class="label">Completed Workflows</div><div class="value">${d.completedWorkflows}</div></div>
+    <div class="stat-card"><div class="label">Pending Workflows</div><div class="value">${d.pendingWorkflows}</div></div>
+  `;
+
+  document.querySelector('#targetStatusTable tbody').innerHTML = d.statuses.map(s => {
+    const barClass = s.progressPct >= 75 ? '' : (s.progressPct >= 40 ? 'warn' : 'danger');
+    const pct = Math.min(s.progressPct, 100);
+    // targetSource: 'monthly' = Manager-set Monthly Target: 'default'/'legacy' =
+    // falling back to the Workflow/KPI Master's Default KPI Target (Expected
+    // Output), so the Manager can see at a glance which workflows still need
+    // a Monthly Target set.
+    const sourceLabel = s.targetSource === 'monthly' ? 'Monthly Target' : 'Default (KPI Master)';
+    const sourceClass = s.targetSource === 'monthly' ? '' : 'warn';
+    return `<tr>
+      <td>${s.workflowName}</td><td>${s.monthlyTarget}</td>
+      <td><span class="badge ${sourceClass}">${sourceLabel}</span></td>
+      <td>${s.approvedQty}</td><td>${s.remaining}</td>
+      <td><span class="progress-track"><span class="progress-fill ${barClass}" style="width:${pct}%"></span></span>${s.progressPct}%</td>
+      <td>${s.status}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty">${T('noWorkflowsFound')}</td></tr>`;
+}
+
+/* ============================================================
+   APPROVALS (Manager) — tabbed Submitted / Draft, with inline Edit
+   ============================================================ */
+let approvalsTab = 'Submitted';
+function setApprovalsTab(tab) {
+  approvalsTab = tab;
+  document.getElementById('apTabSubmitted').className = 'btn btn-sm ' + (tab === 'Submitted' ? 'btn-brown' : 'btn-outline');
+  document.getElementById('apTabDraft').className = 'btn btn-sm ' + (tab === 'Draft' ? 'btn-brown' : 'btn-outline');
+  loadApprovals();
+}
+
+async function loadApprovals() {
+  let groups;
+  try { groups = await callApi('getEntryGroups', { status: approvalsTab }); } catch (e) { toast(e.message); return; }
+  const el = document.getElementById('approvalsList');
+  if (groups.length === 0) {
+    el.innerHTML = `<div class="card empty">No ${approvalsTab.toLowerCase()} entries 🎉</div>`;
+    return;
+  }
+  groups.sort((a, b) => new Date(b.date) - new Date(a.date));
+  el.innerHTML = groups.map(g => {
+    const uniqueParticipants = new Set(g.lines.map(l => l['Staff ID'])).size;
+    return `
+    <div class="card" id="grp_${g.groupId}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div><strong>Logged by ${g.loggedByName}</strong> &middot; ${fmtDate(g.date)}${uniqueParticipants > 1 ? ` &middot; ${uniqueParticipants} staff (team)` : ''}</div>
+        <div>
+          ${approvalsTab === 'Submitted' ? `<button class="btn btn-ok btn-sm" onclick="decideAllLines('${g.groupId}','Approved')">${T('approveAll')}</button>` : ''}
+          <button class="btn btn-outline btn-sm" onclick="toggleEditGroup('${g.groupId}')">${T('editBtn')}</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table><thead><tr>
+        <th>Staff</th><th>Activity</th><th>Workflow</th><th>Per-Entry Target</th><th>Actual</th><th>Ach %</th><th>KPI Score</th>
+        ${approvalsTab !== 'Submitted' ? '<th>Status</th>' : ''}
+        ${approvalsTab === 'Submitted' ? '<th>Action</th>' : ''}
+      </tr></thead>
+        <tbody class="view-rows">
+        ${g.lines.map(l => {
+          const split = Number(l['Team Split Size']) > 1;
+          const scoreCell = split
+            ? `${l['Effective KPI Score']} <span style="color:var(--coffee-500);font-size:11px;">(${l['KPI Score']} ÷ ${l['Team Split Size']})</span>`
+            : l['KPI Score'];
+          return `<tr data-lineid="${l['Line ID']}">
+            <td>${l['Staff Name']}</td><td>${l['Activity Name']}</td><td>${l['Workflow Name']}</td>
+            <td>${l['Target']}</td><td>${l['Actual']}</td><td>${l['Achievement %']}%</td><td>${scoreCell}</td>
+            ${approvalsTab !== 'Submitted' ? `<td><span class="badge ${l['Approval Status']}">${l['Approval Status']}</span></td>` : ''}
+            ${approvalsTab === 'Submitted' ? `<td>
+              <button class="btn btn-ok btn-sm" onclick="decideLine('${l['Line ID']}','Approved')">${T('approveBtn')}</button>
+              <button class="btn btn-danger btn-sm" onclick="decideLine('${l['Line ID']}','Rejected')">${T('rejectBtn')}</button>
+            </td>` : ''}
+          </tr>`;
+        }).join('')}
+        </tbody>
+        <tbody class="edit-rows" style="display:none;">
+        ${[...new Map(g.lines.map(l => [l['Workflow ID'], l])).values()].map(l => `<tr data-wfid="${l['Workflow ID']}"><td colspan="2">${l['Activity Name']}</td><td>${l['Workflow Name']}</td><td>${l['Target']}</td>
+          <td><input type="number" class="edit-actual" min="0" step="1" value="${l['Actual']}" style="width:80px;padding:5px 7px;border:1.4px solid var(--coffee-300);border-radius:6px;"></td>
+          <td colspan="3"></td></tr>`).join('')}
+        </tbody>
+      </table></div>
+      <div class="edit-save" style="display:none;margin-top:10px;">
+        <button class="btn btn-brown btn-sm" onclick="saveGroupEdit('${g.groupId}')">Save Changes</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleEditGroup('${g.groupId}')">${T('cancelBtn')}</button>
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+
+function toggleEditGroup(groupId) {
+  const card = document.getElementById('grp_' + groupId);
+  const editing = card.querySelector('.edit-rows').style.display !== 'none';
+  card.querySelector('.view-rows').style.display = editing ? '' : 'none';
+  card.querySelector('.edit-rows').style.display = editing ? 'none' : '';
+  card.querySelector('.edit-save').style.display = editing ? 'none' : 'block';
+}
+
+async function saveGroupEdit(groupId) {
+  const card = document.getElementById('grp_' + groupId);
+  const lines = [];
+  card.querySelectorAll('.edit-rows tr').forEach(tr => {
+    lines.push({ workflowId: tr.dataset.wfid, actual: tr.querySelector('.edit-actual').value });
+  });
+  const zeroCountWfs = lines.filter(l => Number(l.actual) <= 0).map(l => {
+    const wf = MASTERS.workflows.find(w => w['Workflow ID'] === l.workflowId);
+    return wf ? wf['Workflow Name'] : l.workflowId;
+  });
+  if (zeroCountWfs.length) {
+    toast(T('enterCountAbove0') + ' ' + zeroCountWfs.join(', '));
+    return;
+  }
+  try {
+    await callApi('updateEntryGroup', { actorRole: SESSION.role, actorUserId: SESSION.userId, groupId, lines });
+    toast(T('entryUpdated'));
+    loadApprovals();
+  } catch (e) { toast(e.message); }
+}
+
+async function decideLine(lineId, decision) {
+  try {
+    await callApi('approveEntryLine', { actorRole: SESSION.role, actorUserId: SESSION.userId, lineId, decision });
+    toast(T('decision_' + decision) !== ('decision_' + decision) ? T('decision_' + decision) : decision);
+    loadApprovals();
+  } catch (e) { toast(e.message); }
+}
+
+async function decideAllLines(groupId, decision) {
+  const lineIds = Array.from(document.querySelectorAll(`#grp_${groupId} tbody.view-rows tr[data-lineid]`))
+    .map(tr => tr.dataset.lineid);
+  if (lineIds.length === 0) return;
+  try {
+    await callApi('approveEntryLines', { actorRole: SESSION.role, actorUserId: SESSION.userId, lineIds, decision });
+    toast((I18N['decision_' + decision] ? T('decision_' + decision) : decision) + ' (' + lineIds.length + ')');
+    loadApprovals();
+  } catch (e) { toast(e.message); }
+}
+
+/* ============================================================
+   ATTENDANCE
+   ============================================================ */
+async function markAttendance() {
+  const date = document.getElementById('attDate').value;
+  const status = document.getElementById('attStatus').value;
+  const permissionHours = document.getElementById('attPermHrs').value;
+  const remarks = document.getElementById('attRemarks').value;
+  if (!date) { toast(T('selectDate')); return; }
+  try {
+    await callApi('markAttendance', { staffId: SESSION.staffId, staffName: SESSION.staffName, date, status, permissionHours, remarks });
+    toast(T('attendanceSaved'));
+    loadAttendance();
+  } catch (e) { toast(e.message); }
+}
+
+async function loadAttendance() {
+  const p = SESSION.role === 'Staff' ? { staffId: SESSION.staffId } : {};
+  let rows;
+  try { rows = await callApi('getAttendance', p); } catch (e) { toast(e.message); return; }
+  rows.sort((a, b) => new Date(b['Date']) - new Date(a['Date']));
+  document.querySelector('#attendanceTable tbody').innerHTML = rows.slice(0, 50).map(r => `
+    <tr><td>${fmtDate(r['Date'])}</td><td>${r['Staff Name']}</td><td>${r['Status']}</td><td>${r['Permission Hours']}</td><td>${r['Remarks']}</td></tr>
+  `).join('') || `<tr><td colspan="5" class="empty">${T('noAttendanceRecords')}</td></tr>`;
+}
+
+/* ============================================================
+   LEAVE
+   ============================================================ */
+async function applyLeave() {
+  const fromDate = document.getElementById('lvFrom').value;
+  const toDate = document.getElementById('lvTo').value;
+  const leaveType = document.getElementById('lvType').value;
+  const reason = document.getElementById('lvReason').value;
+  if (!fromDate || !toDate) { toast(T('selectFromTo')); return; }
+  try {
+    await callApi('applyLeave', { staffId: SESSION.staffId, staffName: SESSION.staffName, fromDate, toDate, leaveType, reason });
+    toast(T('leaveApplied'));
+    loadLeave();
+  } catch (e) { toast(e.message); }
+}
+
+async function loadLeave() {
+  const p = SESSION.role === 'Staff' ? { staffId: SESSION.staffId } : {};
+  let rows;
+  try { rows = await callApi('getLeaves', p); } catch (e) { toast(e.message); return; }
+  document.querySelector('#leaveTable tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r['Staff Name']}</td><td>${fmtDate(r['From Date'])}</td><td>${fmtDate(r['To Date'])}</td>
+      <td>${r['Leave Type']}</td><td>${r['Reason']}</td><td><span class="badge ${r['Status'] === 'Approved' ? 'Approved' : (r['Status'] === 'Rejected' ? 'Rejected' : 'Submitted')}">${r['Status']}</span></td>
+      <td>${SESSION.role === 'Manager' && r['Status'] === 'Pending' ? `
+        <button class="btn btn-ok btn-sm" onclick="decideLeave('${r['Leave ID']}','Approved')">✓</button>
+        <button class="btn btn-danger btn-sm" onclick="decideLeave('${r['Leave ID']}','Rejected')">✕</button>` : ''}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="7" class="empty">${T('noLeaveRecords')}</td></tr>`;
+}
+
+async function decideLeave(leaveId, decision) {
+  try {
+    await callApi('decideLeave', { actorRole: SESSION.role, actorUserId: SESSION.userId, leaveId, decision });
+    toast(I18N['decision_' + decision] ? T('decision_' + decision) : decision);
+    loadLeave();
+  } catch (e) { toast(e.message); }
+}
+
+/* ============================================================
+   APPRAISAL
+   ============================================================ */
+let lastAppraisal = [];
+async function loadAppraisal() {
+  const from = document.getElementById('apprFrom').value;
+  const to = document.getElementById('apprTo').value;
+  try { lastAppraisal = await callApi('getAppraisal', { from, to }); } catch (e) { toast(e.message); return; }
+  document.querySelector('#appraisalTable tbody').innerHTML = lastAppraisal.map(a => `
+    <tr>
+      <td>${a.staffName}</td><td>${a.designation}</td><td>${a.section}</td><td>${a.entries}</td>
+      <td>${a.totalKpiScore.toFixed(1)}</td>
+    </tr>`).join('') || `<tr><td colspan="5" class="empty">${T('noApprovedRange')}</td></tr>`;
+}
+function ratingBadgeClass(r) {
+  if (r === 'Outstanding' || r === 'Excellent') return 'Approved';
+  if (r === 'Good' || r === 'Satisfactory') return 'Submitted';
+  return 'Rejected';
+}
+function exportAppraisal() {
+  if (!lastAppraisal.length) { toast(T('runApprFirst')); return; }
+  const rows = lastAppraisal.map(a => ({
+    Staff: a.staffName, Designation: a.designation, Section: a.section, Entries: a.entries,
+    'KPI Score': a.totalKpiScore, 'Max Possible': a.totalMaxScore, 'Overall %': a.overallPct, Rating: a.rating
+  }));
+  exportXlsx(rows, 'Staff_Appraisal.xlsx');
+}
+
+/* ============================================================
+   HR APPRAISAL
+   Uses the existing backend HR module (Recognition, Disciplinary,
+   Manual Scores, getFullAppraisal, getHRManagementSummary,
+   getHRDashboard) — no code.gs changes needed for this module.
+   ============================================================ */
+const RECOGNITION_TYPES = [
+  { type: 'Employee of the Month', bonus: 5 },
+  { type: 'Appreciation Letter', bonus: 3 },
+  { type: 'Special Appreciation', bonus: 3, isRange: true, range: [2, 5] },
+  { type: 'Outstanding Achievement', bonus: 5 },
+  { type: 'Management Recognition', bonus: 3 }
+];
+const MEMO_TYPES = [
+  { type: 'Verbal Warning', deduction: 2 },
+  { type: 'Written Warning', deduction: 5 },
+  { type: 'Final Warning', deduction: 10 },
+  { type: 'Disciplinary Memo', deduction: 8 }
+];
+const MEMO_CATEGORIES = [
+  'Late Coming', 'Poor Performance', 'Absenteeism', 'Safety Violation',
+  'Process Violation', 'Misconduct', 'Quality Issue', 'Customer Complaint', 'Others'
+];
+const MEMO_DECISIONS = ['Warning Upheld', 'Warning Withdrawn', 'Escalated', 'Deduction Adjusted', 'Closed - No Action'];
+
+let lastFullAppraisal = [];
+let hrInited = false;
+let myMemosInited = false;
+
+function defaultPeriodLabel(d) {
+  d = d || new Date();
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[d.getMonth()] + '-' + d.getFullYear();
+}
+
+function hrActorParams(extra) {
+  return Object.assign({ actorRole: SESSION.role, actorUserId: SESSION.userId }, extra || {});
+}
+
+function hrPeriodParams() {
+  return {
+    periodLabel: document.getElementById('hrPeriod').value.trim(),
+    from: document.getElementById('hrFrom').value,
+    to: document.getElementById('hrTo').value
+  };
+}
+
+function initHrAppraisal() {
+  if (!hrInited) {
+    hrInited = true;
+    document.getElementById('hrPeriod').value = defaultPeriodLabel();
+    const now = new Date();
+    document.getElementById('hrFrom').valueAsDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    document.getElementById('hrTo').valueAsDate = now;
+    document.getElementById('dmMemoDate').valueAsDate = now;
+
+    const staffOptions = MASTERS.staff.filter(s => s['Status'] !== 'Inactive')
+      .map(s => `<option value="${s['Staff ID']}">${s['Staff Name']}</option>`).join('');
+    document.getElementById('rcStaff').innerHTML = staffOptions;
+    document.getElementById('dmStaff').innerHTML = staffOptions;
+    document.getElementById('msStaff').innerHTML = staffOptions;
+
+    document.getElementById('rcType').innerHTML = RECOGNITION_TYPES.map(t =>
+      `<option value="${t.type}">${t.type} (+${t.isRange ? t.range[0] + '..' + t.range[1] : t.bonus})</option>`).join('');
+    document.getElementById('dmType').innerHTML = MEMO_TYPES.map(t =>
+      `<option value="${t.type}">${t.type} (-${t.deduction})</option>`).join('');
+    document.getElementById('dmCategory').innerHTML = MEMO_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+    rcTypeChanged();
+  }
+  runFullAppraisal();
+}
+
+function setHrTab(id) {
+  document.querySelectorAll('.subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === id));
+  document.querySelectorAll('.subview').forEach(v => v.classList.toggle('active', v.id === 'subview-' + id));
+  if (id === 'hrRecogMemo') loadRecognitionsTable();
+  if (id === 'hrMemoMgmt') loadMemoManagementTable();
+  if (id === 'hrManual') loadManualScoresTable();
+  if (id === 'hrSummary') loadHrSummary();
+  if (id === 'hrDashboard') loadHrDashboard();
+}
+
+function rcTypeChanged() {
+  const t = RECOGNITION_TYPES.find(x => x.type === document.getElementById('rcType').value);
+  document.getElementById('rcBonusWrap').style.display = t && t.isRange ? 'block' : 'none';
+}
+
+/* ---------- Scorecard ---------- */
+async function runFullAppraisal() {
+  const p = hrPeriodParams();
+  if (!p.periodLabel || !p.from || !p.to) { toast(T('enterPeriodFromTo')); return; }
+  try { lastFullAppraisal = await callApi('getFullAppraisal', p); } catch (e) { toast(e.message); return; }
+  document.querySelector('#hrScorecardTable tbody').innerHTML = lastFullAppraisal.map(a => `
+    <tr>
+      <td>${a.staffName}</td>
+      <td>${a.criteria.attendance.toFixed(1)}</td><td>${a.criteria.productivity.toFixed(1)}</td>
+      <td>${a.criteria.quality.toFixed(1)}</td><td>${a.criteria.teamwork.toFixed(1)}</td>
+      <td>${a.criteria.discipline.toFixed(1)}</td><td>${a.criteria.initiative.toFixed(1)}</td>
+      <td>${a.criteria.training.toFixed(1)}</td><td>${a.criteria.service.toFixed(1)}</td>
+      <td>${a.kpiScore.toFixed(1)}</td>
+      <td>${a.bonusMarks ? '+' + a.bonusMarks : '-'}</td>
+      <td>${a.memoDeduction ? '-' + a.memoDeduction : '-'}${a.repeatEscalation ? ` <span class="tag" title="Repeat-memo escalation included">(incl. -${a.repeatEscalation} repeat)</span>` : ''}</td>
+      <td><strong>${a.finalScore.toFixed(1)}</strong></td>
+      <td><span class="badge ${a.rating.replace(/\s+/g, '')}">${a.rating}</span></td>
+    </tr>`).join('') || `<tr><td colspan="13" class="empty">${T('noActiveStaffData')}</td></tr>`;
+}
+
+function exportFullAppraisal() {
+  if (!lastFullAppraisal.length) { toast(T('runApprFirst')); return; }
+  const rows = lastFullAppraisal.map(a => ({
+    Employee: a.staffName, Designation: a.designation, Department: a.department,
+    'Att.(10)': a.criteria.attendance, 'Prod.(30)': a.criteria.productivity,
+    'Qual.(10)': a.criteria.quality, 'Team(10)': a.criteria.teamwork, 'Disc.(10)': a.criteria.discipline,
+    'Init.(10)': a.criteria.initiative, 'Train(10)': a.criteria.training, 'Serv.(10)': a.criteria.service,
+    'KPI(100)': a.kpiScore, Bonus: a.bonusMarks, Memo: a.memoDeduction, 'Repeat Escalation': a.repeatEscalation,
+    Final: a.finalScore, Rating: a.rating
+  }));
+  exportXlsx(rows, 'HR_KPI_Appraisal_' + document.getElementById('hrPeriod').value + '.xlsx');
+}
+
+/* ---------- Recognition (Bonus) ---------- */
+async function addRecognitionEntry() {
+  const period = document.getElementById('hrPeriod').value.trim();
+  const staffId = document.getElementById('rcStaff').value;
+  const type = document.getElementById('rcType').value;
+  const reason = document.getElementById('rcReason').value.trim();
+  if (!period) { toast(T('setPeriodFirst')); return; }
+  if (!reason) { toast(T('reasonRequired')); return; }
+  const t = RECOGNITION_TYPES.find(x => x.type === type);
+  const params = hrActorParams({ staffId, periodLabel: period, type, reason });
+  if (t && t.isRange) params.bonusMarks = Number(document.getElementById('rcBonusMarks').value) || t.bonus;
+  try {
+    const r = await callApi('addRecognition', params);
+    toast(T('recognitionAdded') + ' (+' + r.bonusMarks + ')');
+    document.getElementById('rcReason').value = '';
+    loadRecognitionsTable();
+    runFullAppraisal();
+  } catch (e) { toast(e.message); }
+}
+
+async function loadRecognitionsTable() {
+  const periodLabel = document.getElementById('hrPeriod').value.trim();
+  if (!periodLabel) return;
+  let recogs = [];
+  try { recogs = await callApi('getRecognitions', { periodLabel }); } catch (e) { toast(e.message); return; }
+  document.querySelector('#recogTable tbody').innerHTML = recogs.map(r => `
+    <tr><td>${r['Staff Name']}</td><td>${r['Type']}</td><td>+${r['Bonus Marks']}</td><td>${r['Reason']}</td>
+    <td><button class="btn btn-outline btn-sm" onclick="deleteRecognitionEntry('${r['Recognition ID']}')">${T('deleteBtn')}</button></td></tr>
+  `).join('') || `<tr><td colspan="5" class="empty">${T('noneThisPeriod')}</td></tr>`;
+}
+
+async function deleteRecognitionEntry(id) {
+  try { await callApi('deleteRecognition', hrActorParams({ recognitionId: id })); toast(T('deleted')); loadRecognitionsTable(); runFullAppraisal(); }
+  catch (e) { toast(e.message); }
+}
+
+/* ============================================================
+   MEMO MANAGEMENT (Manager) — Issue -> Employee Reply -> Manager
+   Review -> Final Decision, with attachment link + full history.
+   ============================================================ */
+async function issueMemoEntry() {
+  const period = document.getElementById('hrPeriod').value.trim();
+  const reason = document.getElementById('dmReason').value.trim();
+  if (!period) { toast(T('setPeriodFirst')); return; }
+  if (!reason) { toast(T('reasonRequired')); return; }
+  const params = hrActorParams({
+    staffId: document.getElementById('dmStaff').value,
+    periodLabel: period,
+    type: document.getElementById('dmType').value,
+    category: document.getElementById('dmCategory').value,
+    reason,
+    description: document.getElementById('dmDescription').value.trim(),
+    memoDate: document.getElementById('dmMemoDate').value,
+    attachmentUrl: document.getElementById('dmAttachment').value.trim()
+  });
+  try {
+    const r = await callApi('addDisciplinaryAction', params);
+    toast(T('memoIssuedToast') + ' (-' + r.deductionMarks + ')');
+    document.getElementById('dmReason').value = '';
+    document.getElementById('dmDescription').value = '';
+    document.getElementById('dmAttachment').value = '';
+    loadMemoManagementTable();
+    runFullAppraisal();
+  } catch (e) { toast(e.message); }
+}
+
+let lastMemoList = [];
+async function loadMemoManagementTable() {
+  const periodLabel = document.getElementById('hrPeriod').value.trim();
+  if (!periodLabel) return;
+  try { lastMemoList = await callApi('getDisciplinaryActions', { periodLabel }); } catch (e) { toast(e.message); return; }
+  document.querySelector('#memoMgmtTable tbody').innerHTML = lastMemoList.map(r => `
+    <tr><td>${r['Memo ID']}</td><td>${r['Staff Name']}</td><td>${r['Category'] || '-'}</td><td>${r['Type']}</td>
+    <td>-${r['Deduction Marks']}</td><td><span class="badge ${(r['Status'] || 'Issued').replace(/\s+/g, '')}">${r['Status'] || 'Issued'}</span></td>
+    <td>
+      <button class="btn btn-outline btn-sm" onclick="openMemoDetailManager('${r['Memo ID']}')">Manage</button>
+      <button class="btn btn-outline btn-sm" onclick="deleteDisciplinaryEntry('${r['Memo ID']}')">${T('deleteBtn')}</button>
+    </td></tr>
+  `).join('') || `<tr><td colspan="7" class="empty">${T('noneThisPeriod')}</td></tr>`;
+}
+
+async function deleteDisciplinaryEntry(id) {
+  try {
+    await callApi('deleteDisciplinaryAction', hrActorParams({ memoId: id }));
+    toast(T('deleted'));
+    document.getElementById('memoDetailCard').style.display = 'none';
+    loadMemoManagementTable();
+    runFullAppraisal();
+  } catch (e) { toast(e.message); }
+}
+
+function memoTimelineHtml(m) {
+  const items = [];
+  items.push(`<li>Issued by ${m['Issued By']}<span class="tl-date">${fmtDate(m['Issued On'])}</span></li>`);
+  if (m['Employee Replied On']) items.push(`<li>Employee replied<span class="tl-date">${fmtDate(m['Employee Replied On'])}</span></li>`);
+  if (m['Manager Reviewed On']) items.push(`<li>Manager reviewed by ${m['Manager Reviewed By']}<span class="tl-date">${fmtDate(m['Manager Reviewed On'])}</span></li>`);
+  if (m['Decided On']) items.push(`<li>Final decision: ${m['Final Decision']}<span class="tl-date">${fmtDate(m['Decided On'])}</span></li>`);
+  return `<ul class="memo-timeline">${items.join('')}</ul>`;
+}
+
+async function openMemoDetailManager(memoId) {
+  let m;
+  try { m = await callApi('getMemoDetail', { memoId }); } catch (e) { toast(e.message); return; }
+  const card = document.getElementById('memoDetailCard');
+  card.style.display = 'block';
+  card.innerHTML = `
+    <button class="close-x" onclick="document.getElementById('memoDetailCard').style.display='none';">✕</button>
+    <h3 style="font-size:15px;color:var(--coffee-900);margin-bottom:4px;">${m['Memo ID']} — ${m['Staff Name']} <span class="badge ${(m['Status'] || 'Issued').replace(/\s+/g, '')}">${m['Status'] || 'Issued'}</span></h3>
+    <p class="li-target-info">${m['Department'] || ''} &middot; ${m['Category'] || ''} &middot; ${m['Type']} &middot; ${fmtDate(m['Memo Date'])}</p>
+    <p style="font-size:13.5px;margin-top:10px;"><strong>Reason:</strong> ${m['Reason'] || ''}</p>
+    ${m['Description'] ? `<p style="font-size:13.5px;margin-top:6px;"><strong>Description:</strong> ${m['Description']}</p>` : ''}
+    ${m['Attachment URL'] ? `<p style="margin-top:6px;"><a class="attach-link" href="${m['Attachment URL']}" target="_blank" rel="noopener">📎 View Attachment</a></p>` : ''}
+
+    <div class="grid grid-2" style="margin-top:16px;">
+      <div>
+        <h4 style="font-size:12.5px;text-transform:uppercase;color:var(--coffee-700);margin-bottom:6px;">Employee Reply</h4>
+        <p style="font-size:13px;">${m['Employee Reply'] ? m['Employee Reply'] : '<span class="empty" style="padding:0;">No reply yet</span>'}</p>
+      </div>
+      <div>${memoTimelineHtml(m)}</div>
+    </div>
+
+    <div class="form-row" style="margin-top:16px;">
+      <div style="grid-column:1/-1"><label>Manager Review</label><textarea id="mdManagerReview" rows="2">${m['Manager Review'] || ''}</textarea></div>
+    </div>
+    <div class="form-row">
+      <div style="grid-column:1/-1"><label>HR Review (optional)</label><textarea id="mdHrReview" rows="2">${m['HR Review'] || ''}</textarea></div>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="saveMemoReview('${m['Memo ID']}')">Save Review</button>
+
+    <div class="form-row" style="margin-top:16px;">
+      <div><label>Final Decision</label><select id="mdDecision">
+        <option value="">Select</option>
+        ${MEMO_DECISIONS.map(d => `<option value="${d}" ${m['Final Decision'] === d ? 'selected' : ''}>${d}</option>`).join('')}
+      </select></div>
+      <div><label>Adjusted Deduction (optional)</label><input type="number" id="mdAdjustedDeduction" min="0" step="1" placeholder="Leave blank to keep ${m['Deduction Marks']}"></div>
+    </div>
+    <button class="btn btn-brown btn-sm" onclick="saveMemoDecision('${m['Memo ID']}')">Finalize Decision</button>
+  `;
+}
+
+async function saveMemoReview(memoId) {
+  const managerReview = document.getElementById('mdManagerReview').value.trim();
+  const hrReview = document.getElementById('mdHrReview').value.trim();
+  try {
+    await callApi('reviewMemo', hrActorParams({ memoId, managerReview, hrReview }));
+    toast(T('reviewSaved'));
+    loadMemoManagementTable();
+    openMemoDetailManager(memoId);
+  } catch (e) { toast(e.message); }
+}
+
+async function saveMemoDecision(memoId) {
+  const finalDecision = document.getElementById('mdDecision').value;
+  const adjustedDeductionMarks = document.getElementById('mdAdjustedDeduction').value;
+  if (!finalDecision) { toast(T('selectFinalDecision')); return; }
+  try {
+    await callApi('decideMemo', hrActorParams({ memoId, finalDecision, adjustedDeductionMarks }));
+    toast(T('finalDecisionSaved'));
+    loadMemoManagementTable();
+    runFullAppraisal();
+    openMemoDetailManager(memoId);
+  } catch (e) { toast(e.message); }
+}
+
+/* ============================================================
+   MY MEMOS (Staff) — view own memos + submit a reply
+   ============================================================ */
+async function loadMyMemos() {
+  let rows = [];
+  try { rows = await callApi('getDisciplinaryActions', { staffId: SESSION.staffId }); } catch (e) { toast(e.message); return; }
+  document.querySelector('#myMemosTable tbody').innerHTML = rows.map(r => `
+    <tr><td>${r['Memo ID']}</td><td>${fmtDate(r['Memo Date'])}</td><td>${r['Category'] || '-'}</td><td>${r['Type']}</td>
+    <td><span class="badge ${(r['Status'] || 'Issued').replace(/\s+/g, '')}">${r['Status'] || 'Issued'}</span></td>
+    <td><button class="btn btn-outline btn-sm" onclick="openMyMemoDetail('${r['Memo ID']}')">${T('viewBtn')}</button></td></tr>
+  `).join('') || `<tr><td colspan="6" class="empty">${T('noMemosOnRecord')}</td></tr>`;
+}
+
+async function openMyMemoDetail(memoId) {
+  let m;
+  try { m = await callApi('getMemoDetail', { memoId }); } catch (e) { toast(e.message); return; }
+  const card = document.getElementById('myMemoDetailCard');
+  card.style.display = 'block';
+  card.innerHTML = `
+    <button class="close-x" onclick="document.getElementById('myMemoDetailCard').style.display='none';">✕</button>
+    <h3 style="font-size:15px;color:var(--coffee-900);margin-bottom:4px;">${m['Memo ID']} <span class="badge ${(m['Status'] || 'Issued').replace(/\s+/g, '')}">${m['Status'] || 'Issued'}</span></h3>
+    <p class="li-target-info">${m['Category'] || ''} &middot; ${m['Type']} &middot; ${fmtDate(m['Memo Date'])}</p>
+    <p style="font-size:13.5px;margin-top:10px;"><strong>Reason:</strong> ${m['Reason'] || ''}</p>
+    ${m['Description'] ? `<p style="font-size:13.5px;margin-top:6px;"><strong>Description:</strong> ${m['Description']}</p>` : ''}
+    ${m['Attachment URL'] ? `<p style="margin-top:6px;"><a class="attach-link" href="${m['Attachment URL']}" target="_blank" rel="noopener">📎 View Attachment</a></p>` : ''}
+    ${memoTimelineHtml(m)}
+
+    <div class="form-row" style="margin-top:14px;">
+      <div style="grid-column:1/-1"><label>Your Reply</label><textarea id="myReplyText" rows="3">${m['Employee Reply'] || ''}</textarea></div>
+    </div>
+    <button class="btn btn-brown btn-sm" onclick="submitMyMemoReply('${m['Memo ID']}')">Submit Reply</button>
+
+    ${m['Manager Review'] ? `<p style="font-size:13px;margin-top:14px;"><strong>Manager Review:</strong> ${m['Manager Review']}</p>` : ''}
+    ${m['Final Decision'] ? `<p style="font-size:13px;margin-top:6px;"><strong>Final Decision:</strong> ${m['Final Decision']}</p>` : ''}
+  `;
+}
+
+async function submitMyMemoReply(memoId) {
+  const reply = document.getElementById('myReplyText').value.trim();
+  if (!reply) { toast(T('enterReplyFirst')); return; }
+  try {
+    await callApi('replyToMemo', hrActorParams({ staffId: SESSION.staffId, memoId, reply }));
+    toast(T('replySubmitted'));
+    loadMyMemos();
+    openMyMemoDetail(memoId);
+  } catch (e) { toast(e.message); }
+}
+
+/* ---------- Manual Scores ---------- */
+async function msLoadExisting() {
+  const staffId = document.getElementById('msStaff').value;
+  const periodLabel = document.getElementById('hrPeriod').value.trim();
+  if (!staffId || !periodLabel) return;
+  let rows = [];
+  try { rows = await callApi('getManualScores', { staffId, periodLabel }); } catch (e) { return; }
+  const r = rows[0];
+  document.getElementById('msQuality').value = r ? r['Quality Score'] : 0;
+  document.getElementById('msTeamwork').value = r ? r['Teamwork Score'] : 0;
+  document.getElementById('msDiscipline').value = r ? r['Discipline Score'] : 0;
+  document.getElementById('msInitiative').value = r ? r['Initiative Score'] : 0;
+  document.getElementById('msTraining').value = r ? r['Training Score'] : 0;
+  document.getElementById('msService').value = r ? r['Service Score'] : 0;
+  document.getElementById('msComments').value = r ? (r['Comments'] || '') : '';
+}
+
+async function submitManualScoreEntry() {
+  const periodLabel = document.getElementById('hrPeriod').value.trim();
+  if (!periodLabel) { toast(T('setPeriodFirst')); return; }
+  const params = hrActorParams({
+    staffId: document.getElementById('msStaff').value, periodLabel,
+    quality: document.getElementById('msQuality').value, teamwork: document.getElementById('msTeamwork').value,
+    discipline: document.getElementById('msDiscipline').value, initiative: document.getElementById('msInitiative').value,
+    training: document.getElementById('msTraining').value, service: document.getElementById('msService').value,
+    comments: document.getElementById('msComments').value
+  });
+  try {
+    await callApi('submitManualScores', params);
+    toast(T('manualScoresSaved'));
+    loadManualScoresTable();
+    runFullAppraisal();
+  } catch (e) { toast(e.message); }
+}
+
+async function loadManualScoresTable() {
+  const periodLabel = document.getElementById('hrPeriod').value.trim();
+  if (!periodLabel) return;
+  let rows = [];
+  try { rows = await callApi('getManualScores', { periodLabel }); } catch (e) { toast(e.message); return; }
+  document.querySelector('#manualScoresTable tbody').innerHTML = rows.map(r => `
+    <tr><td>${r['Staff Name']}</td><td>${r['Quality Score']}</td><td>${r['Teamwork Score']}</td>
+    <td>${r['Discipline Score']}</td><td>${r['Initiative Score']}</td><td>${r['Training Score']}</td>
+    <td>${r['Service Score']}</td><td>${r['Comments'] || ''}</td></tr>
+  `).join('') || `<tr><td colspan="8" class="empty">${T('noManualScoresYet')}</td></tr>`;
+}
+
+/* ---------- HR Management Summary ---------- */
+async function loadHrSummary() {
+  const p = hrPeriodParams();
+  if (!p.periodLabel || !p.from || !p.to) return;
+  let s;
+  try { s = await callApi('getHRManagementSummary', p); } catch (e) { toast(e.message); return; }
+  const row = (name, score, extra) => `<li><span>${name}</span><span class="tag">${score.toFixed(1)}${extra || ''}</span></li>`;
+  document.getElementById('sumTop').innerHTML = s.topPerformers.map(r => row(r.staffName, r.finalScore)).join('') || `<li class="empty">${T('none')}</li>`;
+  document.getElementById('sumImprove').innerHTML = s.needingImprovement.map(r => row(r.staffName, r.finalScore)).join('') || `<li class="empty">${T('none')}</li>`;
+  document.getElementById('sumPromo').innerHTML = s.eligibleForPromotion.map(r => row(r.staffName, r.finalScore)).join('') || `<li class="empty">${T('none')}</li>`;
+  document.getElementById('sumIncrement').innerHTML = s.recommendedForIncrement.map(r => row(r.staffName, r.finalScore)).join('') || `<li class="empty">${T('none')}</li>`;
+  document.getElementById('sumTraining').innerHTML = s.recommendedForTraining.map(r =>
+    `<li><span>${r.staffName} <br>${(r.weakAreas || []).map(w => `<span class="weak-tag">${w}</span>`).join('')}</span><span class="tag">${r.finalScore.toFixed(1)}</span></li>`
+  ).join('') || `<li class="empty">${T('none')}</li>`;
+  document.getElementById('sumDisciplinary').innerHTML = s.disciplinaryConcerns.map(r =>
+    `<li><span>${r.staffName} <br>${(r.memos || []).map(m => `<span class="weak-tag">${m.type}</span>`).join('')}</span><span class="tag">${r.finalScore.toFixed(1)}</span></li>`
+  ).join('') || `<li class="empty">${T('none')}</li>`;
+}
+
+/* ---------- Department Dashboard ---------- */
+async function loadHrDashboard() {
+  const p = hrPeriodParams();
+  if (!p.periodLabel || !p.from || !p.to) return;
+  let d;
+  try { d = await callApi('getHRDashboard', p); } catch (e) { toast(e.message); return; }
+
+  document.getElementById('hrDashStats').innerHTML = `
+    <div class="stat-card"><div class="label">Overall Average</div><div class="value">${d.overallAverage.toFixed(1)}</div></div>
+    <div class="stat-card alt"><div class="label">Staff Ranked</div><div class="value">${d.staffRanking.length}</div></div>
+    <div class="stat-card"><div class="label">Snapshots Saved</div><div class="value">${d.monthlyTrend.length}</div></div>
+    <div class="stat-card alt"><div class="label">Departments</div><div class="value">${d.departmentWise.length}</div></div>
+  `;
+  document.querySelector('#hrRankTable tbody').innerHTML = d.staffRanking.map(r => `
+    <tr><td>#${r.rank}</td><td>${r.staffName}</td><td>${r.department}</td><td>${r.finalScore.toFixed(1)}</td>
+    <td><span class="badge ${r.rating.replace(/\s+/g, '')}">${r.rating}</span></td></tr>
+  `).join('') || `<tr><td colspan="5" class="empty">${T('noData')}</td></tr>`;
+
+  const bmLabels = d.bonusMemoImpact.map(r => r.staffName);
+  drawGroupedBarChart('chartBonusMemo', bmLabels,
+    [{ label: 'Bonus', data: d.bonusMemoImpact.map(r => r.bonusMarks), color: '#5A7D4A' },
+     { label: 'Memo Deduction', data: d.bonusMemoImpact.map(r => -r.memoDeduction), color: '#B5493A' }]);
+
+  drawLineChart('chartTrend', d.monthlyTrend.map(t => t.period), d.monthlyTrend.map(t => t.averageScore));
+}
+
+function drawGroupedBarChart(canvasId, labels, datasets) {
+  const ctx = document.getElementById(canvasId);
+  if (chartRefs[canvasId]) chartRefs[canvasId].destroy();
+  chartRefs[canvasId] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: datasets.map(ds => ({ label: ds.label, data: ds.data, backgroundColor: ds.color, borderRadius: 5 })) },
+    options: { plugins: { legend: { display: true, position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+  });
+}
+
+function drawLineChart(canvasId, labels, values) {
+  const ctx = document.getElementById(canvasId);
+  if (chartRefs[canvasId]) chartRefs[canvasId].destroy();
+  chartRefs[canvasId] = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Avg Final Score', data: values, borderColor: '#6F4E37', backgroundColor: 'rgba(111,78,55,.15)', fill: true, tension: .3 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } }
+  });
+}
+
+async function saveHrSnapshot() {
+  const p = hrPeriodParams();
+  if (!p.periodLabel || !p.from || !p.to) { toast(T('enterPeriodFromTo')); return; }
+  try {
+    const r = await callApi('saveAppraisalSnapshot', hrActorParams(p));
+    toast(T('snapshotSavedFor') + ' ' + r.periodLabel + ' (' + r.staffCount + ' ' + T('staffLower') + ')');
+  } catch (e) { toast(e.message); }
+}
+
+/* ============================================================
+   REPORTS
+   ============================================================ */
+let lastReport = [];
+async function runReport() {
+  const from = document.getElementById('repFrom').value;
+  const to = document.getElementById('repTo').value;
+  const groupField = document.getElementById('repGroupBy').value;
+  let rows;
+  try { rows = await callApi('getWorkingRegister', { from, to, status: 'Approved' }); } catch (e) { toast(e.message); return; }
+  const agg = {};
+  rows.forEach(r => {
+    const key = r[groupField];
+    if (!agg[key]) agg[key] = { key, entries: 0, target: 0, actual: 0, achSum: 0, kpi: 0 };
+    agg[key].entries++;
+    agg[key].target += Number(r['Target']) || 0;
+    agg[key].actual += Number(r['Actual']) || 0;
+    agg[key].achSum += Number(r['Achievement %']) || 0;
+    agg[key].kpi += Number(r['KPI Score']) || 0;
+  });
+  lastReport = Object.values(agg).map(a => ({
+    Group: a.key, Entries: a.entries, 'Total Per-Entry Target': a.target, 'Total Actual': a.actual,
+    'Avg Achievement %': Math.round((a.achSum / a.entries) * 100) / 100, 'Total KPI Score': Math.round(a.kpi * 100) / 100
+  }));
+  document.querySelector('#reportTable tbody').innerHTML = lastReport.map(r => `
+    <tr><td>${r.Group}</td><td>${r.Entries}</td><td>${r['Total Per-Entry Target']}</td><td>${r['Total Actual']}</td><td>${r['Total KPI Score']}</td></tr>
+  `).join('') || `<tr><td colspan="5" class="empty">${T('noDataRange')}</td></tr>`;
+}
+function exportReport() {
+  if (!lastReport.length) { toast(T('runReportFirst')); return; }
+  exportXlsx(lastReport, 'Stores_Report.xlsx');
+}
+
+function exportXlsx(rows, filename) {
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Report');
+  XLSX.writeFile(wb, filename);
+}
+
+/* ============================================================
+   MASTERS VIEW
+   ============================================================ */
+function loadMastersView() {
+  document.querySelector('#staffTable tbody').innerHTML = MASTERS.staff.map(s => `
+    <tr><td>${s['Staff ID']}</td><td>${s['Staff Name']}</td><td>${s['Designation']}</td><td>${s['Section']}</td><td>${s['Status']}</td></tr>
+  `).join('');
+  document.querySelector('#workflowTable tbody').innerHTML = MASTERS.workflows.map(w => `
+    <tr><td>${w['Activity Name']}</td><td>${w['Workflow Name']}</td><td>${w['KPI Name']}</td><td>${w['Unit']}</td>
+    <td>${w['Target']}</td><td>${w['Weightage %']}</td><td>${w['Max Score']}</td><td>${w['Expected Output']}</td><td>${w['Status']}</td></tr>
+  `).join('');
+}
+
+/* ============================================================
+   UTIL
+   ============================================================ */
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  if (isNaN(dt)) return d;
+  const dd = String(dt.getDate()).padStart(2, '0');
+  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  return `${dd}-${mm}-${dt.getFullYear()}`;
+}
+</script>
+</body>
+</html>
