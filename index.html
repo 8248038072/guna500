@@ -1135,7 +1135,12 @@ async function loadCurrentMonthTargets() {
   try {
     const rows = await callApi('getMonthlyTargets', { month });
     const map = {};
-    rows.forEach(r => { map[r['Activity Name'] + '||' + r['Workflow Name']] = r['Monthly Target']; });
+    // Keyed by Workflow ID (not Activity/Workflow Name text) so this always
+    // matches getEffectiveTarget() on the backend, even if a workflow or
+    // activity name was later edited in the Workflow/Activity Master after
+    // the Monthly Target row was saved - a name-text key would silently stop
+    // matching in that case and wrongly show "no monthly target set".
+    rows.forEach(r => { map[r['Workflow ID']] = r['Monthly Target']; });
     CURRENT_MONTH_TARGETS = map;
   } catch (e) {
     CURRENT_MONTH_TARGETS = {};
@@ -1146,9 +1151,7 @@ async function loadCurrentMonthTargets() {
 // this month's Manager-set target if one exists, otherwise fall back to the
 // Workflow/KPI Master's Default KPI Target (Expected Output / Target).
 function getEffectiveTargetDisplay(actId, w) {
-  const act = MASTERS.activities.find(a => a['Activity ID'] === actId);
-  const key = (act ? act['Activity Name'] : '') + '||' + w['Workflow Name'];
-  const monthly = CURRENT_MONTH_TARGETS[key];
+  const monthly = CURRENT_MONTH_TARGETS[w['Workflow ID']];
   if (monthly !== undefined && monthly !== '') return { value: monthly, source: 'monthly' };
   const expected = w['Expected Output'];
   const numericDefault = Number(expected);
